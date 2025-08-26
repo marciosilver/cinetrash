@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineTrash - Críticas Ácidas de Cinema</title>
+    <meta name="description" content="Críticas sinceras e ácidas sobre os piores filmes do cinema. Onde filme ruim é elogio!">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            padding: 40px 0;
+        }
+        
+        .logo {
+            font-size: 4em;
+            margin-bottom: 10px;
+            animation: shake 2s infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .tagline {
+            font-size: 1.3em;
+            opacity: 0.95;
+            margin-bottom: 20px;
+        }
+        
+        .beta-badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .search-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .search-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .api-status {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            background: #f0f0f0;
+        }
+        
+        .api-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #764ba2;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a3785;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .demo-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .demo-title {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .demo-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .demo-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 20px;
+            border: 2px solid white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .demo-btn:hover {
+            background: white;
+            color: #764ba2;
+        }
+        
+        .movie-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            animation: slideUp 0.5s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .movie-header {
+            display: flex;
+            background: #f8f9fa;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .movie-poster {
+            width: 150px;
+            height: 225px;
+            border-radius: 10px;
+            object-fit: cover;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .movie-info {
+            flex: 1;
+        }
+        
+        .movie-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .movie-meta {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .trash-rating {
+            font-size: 2em;
+            margin: 10px 0;
+        }
+        
+        .movie-content {
+            padding: 20px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #764ba2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .badge {
+            background: #ffd700;
+            color: #333;
+            padding: 3px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .section-content {
+            line-height: 1.8;
+            color: #444;
+        }
+        
+        .section.acida {
+            background: linear-gradient(135deg, #fff3cd 0%, #fff9e6 100%);
+            border-left: 4px solid #ffc107;
+        }
+        
+        .section.locked {
+            background: repeating-linear-gradient(
+                45deg,
+                #f5f5f5,
+                #f5f5f5 10px,
+                #e0e0e0 10px,
+                #e0e0e0 20px
+            );
+            opacity: 0.7;
+        }
+        
+        .locked .section-content {
+            filter: blur(3px);
+            user-select: none;
+        }
+        
+        footer {
+            background: rgba(0,0,0,0.2);
+            color: white;
+            padding: 30px;
+            margin-top: 50px;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .tmdb-attribution {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .tmdb-logo {
+            height: 30px;
+        }
+        
+        .disclaimer {
+            font-size: 12px;
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+        
+        .social-links {
+            margin-top: 20px;
+        }
+        
+        .social-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 1.2em;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 600px) {
+            h1 { font-size: 2em; }
+            .movie-header { flex-direction: column; }
+            .movie-poster { width: 100%; height: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🗑️</div>
+            <h1>CineTrash</h1>
+            <p class="tagline">Críticas ácidas e sinceras sobre cinema</p>
+            <span class="beta-badge">BETA - 100% Grátis</span>
+        </header>
+        
+        <div class="search-section">
+            <div class="search-header">
+                <h2>🎬 Destrua um Filme</h2>
+                <span id="apiStatus" class="api-status">🔌 Desconectado</span>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Digite o nome do filme..." disabled>
+                <button class="btn btn-primary" onclick="searchMovie()" disabled id="searchBtn">
+                    🔍 Buscar
+                </button>
+            </div>
+            
+            <div style="text-align: center; margin-top: 10px;">
+                <button class="btn btn-success" onclick="initializeApp()">
+                    ⚡ Ativar CineTrash
+                </button>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <p class="demo-title">🎯 Exemplos rápidos:</p>
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="quickSearch('Barbie')">Barbie</button>
+                <button class="demo-btn" onclick="quickSearch('Velozes e Furiosos')">Velozes e Furiosos</button>
+                <button class="demo-btn" onclick="quickSearch('Batman')">Batman</button>
+                <button class="demo-btn" onclick="quickSearch('Transformers')">Transformers</button>
+            </div>
+        </div>
+        
+        <div id="movieResults"></div>
+        
+        <footer>
+            <div class="tmdb-attribution">
+                <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg" 
+                     alt="TMDB" class="tmdb-logo">
+                <span>Powered by TMDB API</span>
+            </div>
+            <p class="disclaimer">
+                ⚠️ <strong>AVISO LEGAL:</strong><br>
+                Este site usa TMDB e as APIs do TMDB mas não é endossado, certificado ou aprovado pelo TMDB.<br>
+                Todas as críticas são opiniões satíricas para fins de entretenimento.<br>
+                © 2024 CineTrash - Projeto gratuito e open source
+            </p>
+            <div class="social-links">
+                <a href="#" title="GitHub">💻</a>
+                <a href="#" title="Twitter">🐦</a>
+                <a href="#" title="Instagram">📸</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // API Key embutida para demo (você pode trocar pela sua)
+        const API_KEY = '8d3f94c2a1b5e6d7c8b9a0e1f2g3h4i5'; // TROQUE PELA SUA KEY!
+        const BASE_URL = 'https://api.themoviedb.org/3';
+        const IMG_BASE = 'https://image.tmdb.org/t/p/w500';
+        
+        // Banco de críticas ácidas
+        const criticasAcidas = {
+            'barbie': {
+                sinopse: 'Mattel descobriu que dá pra fazer 2 horas de comercial e cobrar ingresso. É rosa, tem plástico, e filosofa mais que universitário de humanas depois de ler Beauvoir pela primeira vez. Margot Robbie e Ryan Gosling merecem Oscar por fingir que o roteiro faz sentido.',
+                analise: 'O filme não sabe se é crítica social, comédia, musical ou propaganda. Tenta ser tudo e consegue ser... bem, é colorido. Tem uma cena de 20 minutos sobre existencialismo com boneca. Greta Gerwig, você está bem?',
+                spoiler: 'Barbie escolhe virar humana pra poder ir ao ginecologista. Sim, essa é a grande revelação filosófica. O patriarcado é derrotado com uma apresentação de PowerPoint. Ken vira terapeuta. Eu preciso de terapia depois disso.'
+            },
+            'fast': {
+                sinopse: 'A física morreu na primeira sequência e agora é só um fantasma assistindo carros no espaço. Dom fala "família" mais vezes que respiramos em um dia. Vin Diesel sussurra 90% das falas porque gritar gasta energia que ele precisa pra segurar o volante dramaticamente.',
+                analise: 'Começou roubando DVD player, agora luta contra cyborgs espaciais. É o único filme onde "salvar o mundo com drift" é uma frase que faz sentido no contexto. A NASA deveria estudar esses carros.',
+                spoiler: 'Plot twist: o vilão é SEMPRE alguém da família que ninguém mencionou antes. Resolvem tudo com corrida. No espaço. Com nitro quântico. A Terra é salva por um Dodge Charger 1970.'
+            },
+            'transformers': {
+                sinopse: 'Michael Bay descobriu que explosões + robôs + Megan Fox = dinheiro infinito. O roteiro foi escrito por uma IA treinada em comerciais de brinquedo dos anos 80. Tem mais product placement que filme.',
+                analise: 'São 3 horas de metal batendo em metal enquanto Shia LaBeouf grita "OPTIMUUUUS". A câmera gira tanto que você sai do cinema com labirintite. Cada filme destrói uma cidade diferente mas ninguém nunca menciona isso no próximo.',
+                spoiler: 'Optimus morre. Volta. Morre de novo. Volta com upgrade. Sam salva o mundo com o poder do amor adolescente. Megatron promete voltar. Sempre volta. É o Silvio Santos dos robôs do mal.'
+            },
+            'batman': {
+                sinopse: 'Bilionário com problemas parentais decide que fantasia de morcego é terapia válida. Gotham é destruída (de novo), o Coringa ri (de novo), Batman rosna (de novo). É o mesmo filme há 40 anos mas agora mais escuro e com mais chuva.',
+                analise: 'Cada reboot o Batman fica mais emo. Daqui a pouco vai lutar contra o crime enquanto ouve My Chemical Romance. A voz dele está tão grossa que precisa de legenda. Alfred deveria cobrar adicional de periculosidade.',
+                spoiler: 'Os pais morrem no beco (chocante!). Batman não mata mas deixa o vilão cair de prédio "sem querer". Gotham continua horrível. Teaser pro próximo filme com outro vilão rindo na sombra.'
+            },
+            'marvel': {
+                sinopse: 'Fórmula Marvel ataca novamente: herói relutante + piadas a cada 30 segundos + CGI de 200 milhões + cena pós-crédito vendendo próximo filme. Stan Lee aparece por 2 segundos e é a melhor parte.',
+                analise: 'O filme existe só pra conectar com outros 47 filmes que você precisa ver pra entender. Tem mais referências que história. O vilão é sempre o herói mas em roxo/cinza/dourado. Destroem Nova York (ou lugar fake que parece Nova York).',
+                spoiler: 'Herói perde no meio, treina/chora/descobre poder interno, volta e vence com ajuda dos amigos. Infinity Stone/multiverso/variante aparece. Nick Fury recruta alguém. Tem 4 cenas pós-créditos preparando Phase 67.'
+            },
+            'netflix': {
+                sinopse: 'Algoritmo da Netflix gerou mais um filme genérico. Tem tudo que tá trending: inclusão forçada, plot twist previsível, e aquele ator que tá em TODOS os filmes da Netflix. Parece que foi feito por committee de marketing.',
+                analise: 'É o filme mais "6/10" já criado. Não é ruim o suficiente pra desligar, não é bom o suficiente pra lembrar. Você termina e o algoritmo já sugere outros 10 idênticos. É o fast food do cinema: satisfaz na hora mas você se arrepende depois.',
+                spoiler: 'O mocinho bonzinho era o vilão (uau!). A mocinha forte e independente salva todo mundo sozinha. Termina com setup pra série de 8 temporadas que vai ser cancelada na segunda. Classic Netflix.'
+            },
+            'default': {
+                sinopse: 'Este filme existe e pessoas foram pagas para fazê-lo. É o equivalente cinematográfico de um email que poderia ser um WhatsApp. Desperdiça seu tempo com a eficiência de reunião que poderia ser um email.',
+                analise: 'Assisti esse filme para vocês não precisarem. É o herói que vocês merecem, mas não o que precisam agora. Ou nunca. Na verdade, ninguém precisa ver isso. A humanidade sobreviveu milhões de anos sem esse filme.',
+                spoiler: 'Spoiler: o filme acaba. Eventualmente. Depois de parecer uma eternidade. Os créditos rolam. Você questiona suas escolhas de vida. Tem cena pós-crédito mas é só o diretor pedindo desculpas. Brincadeira, ele pede pra você ver a sequência.'
+            }
+        };
+        
+        // Função para inicializar o app
+        function initializeApp() {
+            // Simula conexão com API
+            const status = document.getElementById('apiStatus');
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            status.textContent = '⏳ Conectando...';
+            
+            setTimeout(() => {
+                status.textContent = '✅ Conectado';
+                status.classList.add('connected');
+                searchInput.disabled = false;
+                searchBtn.disabled = false;
+                searchInput.focus();
+            }, 1000);
+        }
+        
+        // Função para buscar filme (simulada por enquanto)
+        async function searchMovie() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (!searchTerm) {
+                alert('Digite o nome de um filme para destruir! 😈');
+                return;
+            }
+            
+            // Simula busca
+            const results = document.getElementById('movieResults');
+            results.innerHTML = '<div style="text-align: center; color: white; padding: 20px;">🔍 Procurando filme para destruir...</div>';
+            
+            setTimeout(() => {
+                // Determina qual crítica usar
+                let critica = criticasAcidas.default;
+                
+                if (searchTerm.includes('barbie')) critica = criticasAcidas.barbie;
+                else if (searchTerm.includes('velozes') || searchTerm.includes('furiosos')) critica = criticasAcidas.fast;
+                else if (searchTerm.includes('transformers')) critica = criticasAcidas.transformers;
+                else if (searchTerm.includes('batman')) critica = criticasAcidas.batman;
+                else if (searchTerm.includes('marvel') || searchTerm.includes('vingadores')) critica = criticasAcidas.marvel;
+                else if (searchTerm.includes('netflix')) critica = criticasAcidas.netflix;
+                
+                // Gera rating aleatório
+                const rating = Math.floor(Math.random() * 5) + 1;
+                
+                // Cria card do filme
+                results.innerHTML = `
+                    <div class="movie-card">
+                        <div class="movie-header">
+                            <img src="https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster" 
+                                 alt="Poster" class="movie-poster">
+                            <div class="movie-info">
+                                <h2 class="movie-title">${searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1)}</h2>
+                                <div class="movie-meta">
+                                    📅 Ano: 2024<br>
+                                    ⭐ Nota TMDB: ${(10 - rating * 1.5).toFixed(1)}/10<br>
+                                    🎬 Gênero: Desperdício de Tempo
+                                </div>
+                                <div class="trash-rating">
+                                    ${'🗑️'.repeat(rating)}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="movie-content">
+                            <div class="section">
+                                <div class="section-header">
+                                    <div class="section-title">
+                                        📝 SINOPSE ORIGINAL
+                                    </div>
+                                </div>
+                                <div class="section-content">
+                                    Uma jornada cinematográfica que explora os limites do tédio humano e testa sua paciência de formas nunca antes imaginadas.
+                                </div>
+                            </div>
+                            
+                            <div class="section acida">
+                                <div class="section-header">
+                                    <div class="section-title">
+                                        😈 CRÍTICA ÁCIDA
+                                    </div>
+                                    <span class="badge">GRÁTIS</span>
+                                </div>
+                                <div class="section-content">
+                                    <strong>${critica.sinopse}</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="section locked">
+                                <div class="section-header">
+                                    <div class="section-title">
+                                        🔒 ANÁLISE PROFUNDA
+                                    </div>
+                                    <span class="badge">EM BREVE</span>
+                                </div>
+                                <div class="section-content">
+                                    ${critica.analise}
+                                </div>
+                            </div>
+                            
+                            <div class="section locked">
+                                <div class="section-header">
+                                    <div class="section-title">
+                                        🔒 SPOILER SARCÁSTICO
+                                    </div>
+                                    <span class="badge">EM BREVE</span>
+                                </div>
+                                <div class="section-content">
+                                    ${critica.spoiler}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }, 1500);
+        }
+        
+        // Busca rápida
+        function quickSearch(movie) {
+            document.getElementById('searchInput').value = movie;
+            if (!document.getElementById('searchBtn').disabled) {
+                searchMovie();
+            } else {
+                alert('Clique em "Ativar CineTrash" primeiro! ⚡');
+            }
+        }
+        
+        // Enter para buscar
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !this.disabled) {
+                searchMovie();
+            }
+        });
+        
+        // Auto-inicializa (remover em produção com API real)
+        // setTimeout(initializeApp, 1000);
+    </script>
+</body>
+</html>
