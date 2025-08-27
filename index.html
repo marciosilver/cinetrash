@@ -635,16 +635,29 @@
 
 
         // Detecta franquia por título
-        function detectFranchise(title){
-        const t = (title||"").toLowerCase();
-        if (/miss[aã]o imposs[ií]vel/.test(t)) return "Missão Impossível";
-        if (/velozes|furiosos|fast.*furious/.test(t)) return "Velozes e Furiosos";
-        if (/transformers/.test(t)) return "Transformers";
-        if (/batman/.test(t)) return "Batman";
-        if (/madame teia|morbius|cats|dragonball evolution|esquadrao suicida/.test(t)) 
-        return "internet_fail";
-        if (/vingadores|marvel|homem de ferro|thor|capit[aã]o am[eé]rica|pantera negra/.test(t)) return "Marvel";
-        return null;
+        function detectFranchises(title) {
+            const t = (title || "").toLowerCase();
+            const tags = [];
+
+            if (/miss[aã]o imposs[ií]vel/.test(t)) tags.push("Missão Impossível");
+            if (/velozes|furiosos|fast.*furious/.test(t)) tags.push("Velozes e Furiosos");
+            if (/transformers/.test(t)) tags.push("Transformers");
+            if (/batman/.test(t)) tags.push("Batman");
+
+            // Casos “internet já destruiu”
+            if (/madame teia|morbius|cats|dragonball evolution|esquadrao suicida/.test(t)) {
+                tags.push("internet_fail");
+            }
+            // Casos do “Sony Spiderverse” (Madame Teia / Morbius / Venom)
+            if (/madame teia|morbius|venom/.test(t)) {
+                tags.push("Sony Spiderverse");
+            }
+
+            if (/vingadores|marvel|homem de ferro|thor|capit[aã]o am[eé]rica|pantera negra/.test(t)) {
+                tags.push("Marvel");
+            }
+
+            return tags;
         }
 
         // Era por ano
@@ -684,30 +697,33 @@
             return tituloBR || atorBR;
         }
         // Motor principal
-        function gerarCriticaSatira({ title, year, genres=[], cast=[], voteAvg }){
+        function gerarCriticaSatira({ title, year, genres = [], cast = [], voteAvg }) {
             const seed = cyrb128(`${title}|${year}`)[0];
             const rng = mulberry32(seed);
             const ctx = { rng, ator: cast[0]?.name };
 
             const g = genres[0] ? mapGenre(genres[0]) : "base";
-            const franq = detectFranchise(title);
+            const franqs = detectFranchises(title);     // <<--- agora é lista
             const era = eraTag(year);
             const isBR = isFilmeBrasileiro(title, cast);
 
-            // NOVO: gera mais linhas
             const lines = [];
 
-            // Escolhe piadas apropriadas
-            if (isBR) {
-                lines.push(pick(ROAST_DB.base_brasileiro, rng));
-            } else {
-                lines.push(pick(ROAST_DB.base_americano, rng));
+            // 1) PRIORIDADE: franquias primeiro (vai pro topo)
+            for (const tag of franqs) {
+                if (ROAST_DB.franquias[tag]) {
+                lines.unshift(pick(ROAST_DB.franquias[tag], rng));  // <--- entra na frente
+                }
             }
-            
-            // Sempre adiciona algumas universais
+
+            // 2) Nacionalidade
+            if (isBR) lines.push(pick(ROAST_DB.base_brasileiro, rng));
+            else lines.push(pick(ROAST_DB.base_americano, rng));
+
+            // 3) Universal
             lines.push(pick(ROAST_DB.base_all, rng));
 
-            // Escolhe piadas base apropriadas ao gênero
+            // 4) Base por “família” de gênero
             if (g === "Terror" || g === "Thriller" || g === "Suspense") {
                 lines.push(pick(ROAST_DB.base_drama || ROAST_DB.base_all, rng));
             } else if (g === "Ação") {
@@ -715,53 +731,31 @@
             } else {
                 lines.push(pick(ROAST_DB.base_all, rng));
             }
-            
-            // Adiciona piadas específicas do gênero
+
+            // 5) Específicas de gênero
             if (ROAST_DB[g]) {
-                // Adiciona 2-3 piadas do gênero específico
-                for(let i = 0; i < 2; i++) {
-                    lines.push(pick(ROAST_DB[g], rng));
-                }
-            }
-            
-            // Adiciona 3-4 piadas base
-            for(let i = 0; i < 3; i++) {
-                lines.push(pick(ROAST_DB.base, rng));
-            }
-            
-            // Adiciona piadas por gênero
-            if (ROAST_DB[g]) {
-                lines.push(pick(ROAST_DB[g], rng));
-            }
-            
-            // Adiciona piadas por era
-            if (era && ROAST_DB[era]) {
-                lines.push(pick(ROAST_DB[era], rng));
-            }
-            
-            // Adiciona piadas de franquia
-            if (franq && ROAST_DB.franquias[franq]) {
-                lines.push(pick(ROAST_DB.franquias[franq], rng));
-            }
-            
-            // NOVO: piada específica do ator
-            const actorName = cast[0]?.name;
-            if (actorName && actorJokes[actorName]) {
-                lines.push(actorJokes[actorName]);
+                for (let i = 0; i < 2; i++) lines.push(pick(ROAST_DB[g], rng));
             }
 
+            // 6) Base gerais
+            for (let i = 0; i < 3; i++) lines.push(pick(ROAST_DB.base, rng));
+
+            // 7) Era
+            if (era && ROAST_DB[era]) lines.push(pick(ROAST_DB[era], rng));
+
+            // 8) Piada do ator (se houver)
+            const actorName = cast[0]?.name;
+            if (actorName && actorJokes[actorName]) lines.push(actorJokes[actorName]);
+
             const uniqueLines = uniqLines(lines).map(s => templ(s, ctx));
-            
+
             const sinopse = `${title} (${year || "????"}). ${uniqueLines[0] || "Filme existe."}`;
             const analise = uniqueLines
                 .slice(1, 5)
-                .map(s => s.replace(/[.?!]\s*$/, "")) // remove pontuação final duplicada
+                .map(s => s.replace(/[.?!]\s*$/, ""))
                 .join(". ") + ".";
 
-            
-            // NOVO: spoiler variado
             const spoiler = templ(pick(spoilerTemplates, rng), ctx);
-
             const trash_score = computeTrashScore(voteAvg, rng);
 
             return { sinopse, analise, spoiler, trash_score };
