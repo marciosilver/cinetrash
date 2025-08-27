@@ -527,6 +527,21 @@
                 "Humor Multishow elevado a cinema. Continua sendo Multishow, blah!"
             ],
             franquias: {
+                "Sony Spiderverse": [
+                "Universo onde a única teia que prende é a da bilheteria vazia.",
+                "Sony tentando criar um MCU… só que esqueceram o 'M' de Marvel.",
+                "Poder da clarividência usado para prever que o público ia odiar.",
+                "Spin-off tão spin-off que rodou até sair da sala de cinema.",
+                "Vilões sem carisma, heróis sem roteiro e CGI sem prazo."
+            ],
+            "internet_fail": [
+                "Filme tão ruim que virou meme antes da estreia.",
+                "Até a internet se recusou a piratear.",
+                "Versão estendida? Já é castigo suficiente a versão curta.",
+                "Mais lembrado pelos memes do que pela trama.",
+                "Bilheteria fantasma: só apareceu gente no Twitter.",
+                "Críticos disseram 'não é cinema'. A internet completou: 'também não é série, nem vídeo do TikTok… é só dor'."
+            ],
                 "Missão Impossível": [
                 "{ator} corre resolve 80% do roteiro; os outros 20% ele resolve pendurado em algo.",
                 "Roteiro baseado em 'e se ele realmente fizesse isso de verdade?'."
@@ -626,6 +641,8 @@
         if (/velozes|furiosos|fast.*furious/.test(t)) return "Velozes e Furiosos";
         if (/transformers/.test(t)) return "Transformers";
         if (/batman/.test(t)) return "Batman";
+        if (/madame teia|morbius|cats|dragonball evolution|esquadrao suicida/.test(t)) 
+        return "internet_fail";
         if (/vingadores|marvel|homem de ferro|thor|capit[aã]o am[eé]rica|pantera negra/.test(t)) return "Marvel";
         return null;
         }
