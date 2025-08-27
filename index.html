@@ -731,38 +731,57 @@
             searchInput.focus();
         }
         
-        // === FUNÇÕES DE BUSCA ===
-        
-        // Tradução automática usando MyMemory API (gratuita)
-        async function translateText(text, fromLang = 'en', toLang = 'pt') {
-            if (!text || text.trim() === '') return text;
-            
-            console.log('Tentando traduzir:', text.substring(0, 50) + '...');
-            console.log('Tamanho do texto:', text.length);
-            
+        const _translateCache = new Map();
+
+        function _looksPtBR(s) {
+        return /[ãõáéíóúàêâôç]/i.test(s); // heurística simples
+        }
+
+        function _stripHtml(s) {
+        return (s || "").replace(/<[^>]*>/g, "");
+        }
+
+        async function translateText(text, fromLang = "en", toLang = "pt-BR") {
+        if (!text) return text;
+        // remove tags se vier de TVMaze
+        const clean = _stripHtml(text).trim();
+        if (!clean) return "";
+
+        // já é português? devolve direto
+        if (_looksPtBR(clean)) return clean;
+
+        // cache
+        const cacheKey = `${fromLang}|${toLang}|${clean}`;
+        if (_translateCache.has(cacheKey)) return _translateCache.get(cacheKey);
+
+        // MyMemory limita ~500 chars – use 480 para margem
+        const MAX = 480;
+        const chunks = [];
+        for (let i = 0; i < clean.length; i += MAX) {
+            chunks.push(clean.slice(i, i + MAX));
+        }
+
+        const out = [];
+        for (const part of chunks) {
             try {
-                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
-                console.log('URL da tradução:', url);
-                
-                const response = await fetch(url);
-                console.log('Status da resposta:', response.status);
-                
-                const data = await response.json();
-                console.log('Resposta completa da tradução:', data);
-                
-                if (data.responseStatus === 200 && data.responseData?.translatedText) {
-                    console.log('Tradução bem-sucedida!');
-                    return data.responseData.translatedText;
-                } else {
-                    console.warn('Tradução falhou - usando texto original');
-                }
-            } catch (error) {
-                console.error('Erro na tradução:', error);
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(part)}&langpair=${fromLang}|${toLang}`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+            const ok = data?.responseStatus === 200 && data?.responseData?.translatedText;
+            out.push(ok ? data.responseData.translatedText : part);
+            // opcional: pequeno delay para respeitar cota
+            await new Promise(r => setTimeout(r, 120));
+            } catch {
+            out.push(part); // fallback do pedaço
             }
-            
-            return text; // Fallback para texto original
+        }
+
+        const finalText = out.join("");
+        _translateCache.set(cacheKey, finalText);
+        return finalText;
         }
         
+        // === FUNÇÕES DE BUSCA ===
         async function searchTMDB(query) {
             try {
                 const response = await fetch(
@@ -925,7 +944,7 @@
                             <div class="section-header">
                                 <div class="section-title">📝 SINOPSE ORIGINAL</div>
                             </div>
-                            <div class="section-content">
+                            <div class="section-content" id="synopsisArea">
                                 ${content.overview}
                             </div>
                         </div>
@@ -954,7 +973,14 @@
                     </div>
                 </div>
             `;
+
+            // 🔄 Tradução assíncrona da sinopse
+            const synopsisEl = document.getElementById("synopsisArea");
+            translateText(content.overview, "en", "pt-BR").then(t => {
+                if (t && t !== content.overview) synopsisEl.textContent = t;
+            });
         }
+
         
         function quickSearch(query, type = null) {
             if (type) {
