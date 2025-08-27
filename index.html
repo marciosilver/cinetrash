@@ -736,7 +736,7 @@
         // Tradução automática usando MyMemory API (gratuita)
         async function translateText(text, fromLang = 'en', toLang = 'pt') {
             if (!text || text.trim() === '') return text;
-            
+             console.log('Tentando traduzir:', text.substring(0, 50) + '...'); // DEBUG
             try {
                 const response = await fetch(
                     `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
