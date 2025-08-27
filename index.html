@@ -429,6 +429,14 @@
 
         // ---------- Banco de piadas (expandível) ----------
         const ROAST_DB = {
+            base_action: [ // só para filmes de ação
+                "Orçamento generoso para explodir {coisa}...",
+                "Explosões suficientes para três filmes do Michael Bay"
+            ],
+            base_drama: [ // para dramas/thrillers
+                "Silêncios dramáticos tão longos que você revê suas escolhas",
+                "Tensão que poderia ser resolvida com uma conversa de 2 minutos"
+            ],
             base: [
                 "Orçamento generoso para explodir {coisa} enquanto o roteiro tira férias.",
                 "A fotografia é tão escura que o brilho da TV virou personagem.",
@@ -456,8 +464,11 @@
                 "Humor com risada enlatada invisível."
             ],
             Terror: [
-                "Jumpscare por minuto: {numero}/min; história por minuto: em aberto.",
-                "Casa obviamente assombrada que no Zillow custa 12 dólares, e a família fica."
+                "Jumpscare por minuto: {numero}/min; desenvolvimento de personagem: 0/min",
+                "Casa obviamente assombrada que no OLX custa 50 mil, família: 'que pechincha'",
+                "Protagonista investiga barulho sozinho no escuro. Darwin aprova",
+                "Crianças assustadoras cantando música de ninar. Que original",
+                "Família se muda pra casa onde morreu todo mundo. Aluguel barato justifica"
             ],
             Drama: [
                 "Silêncios dramáticos tão longos que você revê suas escolhas de vida.",
@@ -471,6 +482,14 @@
                 "Twist que você sacou no trailer, mas finge surpresa por educação.",
                 "Todo mundo suspeito, inclusive o microfone de lapela."
             ],
+
+            Thriller: [
+                "Tensão construída em 90 minutos, destruída em 5 com plot twist óbvio",
+                "Todo mundo é suspeito, especialmente quem parece mais inocente",
+                "Protagonista confia em quem não devia. Audiência grita na tela",
+                "Red flags do tamanho do Empire State, protagonista: 'parece gente boa'",
+                "Plot twist que você sacou no trailer mas o filme acha que é genial"
+            ],
             Romance: [
                 "Química do casal medida em temperatura ambiente.",
                 "Cidade turística usada como personagem porque o casal não deu liga."
@@ -478,6 +497,20 @@
             Animação: [
                 "Piada para adulto escondida entre lições de moral.",
                 "Personagens fofos projetados em laboratório para vender pelúcia."
+            ],
+            base_all: [
+                "Filme existe. Pessoas foram pagas. Lei Rouanet questiona",
+                "Mais longo que fila do SUS, menos produtivo que reunião de condomínio",
+                "Roteiro escrito no WhatsApp durante engarrafamento na Marginal",
+                "Produção bancada com dinheiro que podia ter ido pro Posto de Saúde",
+                "2 horas da sua vida que você não vai recuperar"
+            ],
+
+            Comédia_Nacional: [
+                "Fabio Porchat super engraçado, só que não",
+                "Piada de sogra, funcionário público e político. Zap do tiozão virou filme",
+                "Leandro Hassum cai. Paulo Gustavo (RIP) fazia melhor",
+                "Humor Multishow elevado a cinema. Continua sendo Multishow, blah!"
             ],
             franquias: {
                 "Missão Impossível": [
@@ -503,6 +536,15 @@
             },
             coisas: ["carros","prédios","helicópteros","coerência","CGI duvidoso","plot twist"]
         };
+
+        const coisas = [
+            "carros",
+            "prédios", 
+            "helicópteros",
+            "coerência",
+            "CGI da Globo",
+            "plot twist de novela das 9"
+        ];
 
         const spoilerTemplates = [
             "No fim, {ator} descobre que o verdadeiro vilão era o contrato da sequência.",
@@ -615,6 +657,23 @@
 
             // NOVO: gera mais linhas
             const lines = [];
+
+            // Escolhe piadas base apropriadas ao gênero
+            if (g === "Terror" || g === "Thriller" || g === "Suspense") {
+                lines.push(pick(ROAST_DB.base_drama || ROAST_DB.base_all, rng));
+            } else if (g === "Ação") {
+                lines.push(pick(ROAST_DB.base_action || ROAST_DB.base_all, rng));
+            } else {
+                lines.push(pick(ROAST_DB.base_all, rng));
+            }
+            
+            // Adiciona piadas específicas do gênero
+            if (ROAST_DB[g]) {
+                // Adiciona 2-3 piadas do gênero específico
+                for(let i = 0; i < 2; i++) {
+                    lines.push(pick(ROAST_DB[g], rng));
+                }
+            }
             
             // Adiciona 3-4 piadas base
             for(let i = 0; i < 3; i++) {
