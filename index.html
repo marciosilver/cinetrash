@@ -796,74 +796,24 @@
 
         // busca tópicos em alguns subreddits e extrai os melhores comentários
         async function fetchRedditReactions(title, type){
-            const subs = (type === 'tv')
-                ? ['television', 'tvdetails', 'bestof']
-                : ['movies', 'moviecritic', 'badMovies']; // pode ajustar depois
-
-            const query = `"${title}" (discussion OR review OR thoughts OR opinion)`;
-            const params = `?q=${encodeURIComponent(query)}&restrict_sr=1&sort=top&t=all&limit=3`;
-
-            const candidatePosts = [];
-            for (const sr of subs) {
-                try {
-                const url = `https://www.reddit.com/r/${sr}/search.json${params}`;
+            try {
+                const url = `/api/reddit?q=${encodeURIComponent(title)}&type=${encodeURIComponent(type)}`;
                 const r = await fetch(url);
-                const j = await r.json();
-                (j?.data?.children || []).forEach(p => {
-                    const d = p?.data;
-                    if (!d) return;
-                    if ((d.num_comments || 0) > 10 && (d.score || 0) >= 50) {
-                    candidatePosts.push({ permalink: d.permalink, title: d.title, score: d.score });
-                    }
-                });
-                } catch (e) {
-                console.warn('Falha ao buscar /r/' + sr, e);
+                if (!r.ok) throw new Error("backend reddit not ok");
+                const { quotes = [] } = await r.json();
+
+                // traduz cada quote (sem estourar cota)
+                const out = [];
+                for (const q of quotes) {
+                const textPt = await translateText(q.text, "en", "pt-BR");
+                out.push({ ...q, text: textPt });
+                await new Promise(res => setTimeout(res, 120)); // micro delay
                 }
+                return out;
+            } catch (e) {
+                console.warn("Reddit backend falhou:", e);
+                return [];
             }
-
-            // escolhe até 3 tópicos únicos
-            const seen = new Set();
-            const posts = [];
-            for (const p of candidatePosts) {
-                if (seen.has(p.permalink)) continue;
-                seen.add(p.permalink);
-                posts.push(p);
-                if (posts.length >= 3) break;
-            }
-
-            const quotes = [];
-            for (const post of posts) {
-                try {
-                const url = `https://www.reddit.com${post.permalink}.json?limit=100`;
-                const r = await fetch(url);
-                const j = await r.json();
-
-                const comments = (j?.[1]?.data?.children || [])
-                    .map(c => c?.data)
-                    .filter(Boolean)
-                    .sort((a,b) => (b?.ups||0) - (a?.ups||0));
-
-                for (const c of comments) {
-                    const body = c?.body || '';
-                    if (!_isDecentQuote(body)) continue;
-
-                    // traduzindo (inglês -> pt-BR). Se já vier PT, translateText não vai retraduzir
-                    const textPt = await translateText(body, 'en', 'pt-BR');
-                    quotes.push({
-                    text: textPt,
-                    author: c?.author || 'anon',
-                    score: c?.ups || 0,
-                    link: `https://www.reddit.com${post.permalink}`
-                    });
-
-                    if (quotes.length >= 5) break; // suficiente pro card
-                }
-                if (quotes.length >= 5) break;
-                } catch (e) {
-                console.warn('Erro ao ler comentários do post', post, e);
-                }
-            }
-            return quotes;
         }
 
         // injeta quotes traduzidos no card
