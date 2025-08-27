@@ -795,30 +795,40 @@
         
         async function searchTVMaze(query) {
             try {
-                const response = await fetch(
-                    `${TVMAZE_BASE_URL}/search/shows?q=${encodeURIComponent(query)}`
-                );
-                const data = await response.json();
-                const show = data[0]?.show;
-                
+                const res = await fetch(`${TVMAZE_BASE_URL}/search/shows?q=${encodeURIComponent(query)}`);
+                const arr = await res.json();
+                const show = arr?.[0]?.show;
                 if (!show) return null;
+
+                // detalhes + elenco
+                const dres = await fetch(`${TVMAZE_BASE_URL}/shows/${show.id}?embed=cast`);
+                const det = await dres.json();
+                const cast = (det._embedded?.cast || []).slice(0,3).map(c => ({ name: c?.person?.name || "" }));
+
+                // Extrai sinopse e remove HTML
+                let overview = det.summary ? det.summary.replace(/<[^>]*>/g,'') : 'Sem sinopse disponível.';
                 
+                // Traduz sinopse se não estiver vazia e for maior que 10 caracteres
+                if (overview && overview !== 'Sem sinopse disponível.' && overview.length > 10) {
+                    overview = await translateText(overview);
+                }
+
                 return {
                     type: 'tv',
                     source: 'TVMaze',
-                    title: show.name,
-                    year: show.premiered ? show.premiered.slice(0, 4) : '',
-                    genres: show.genres || [],
-                    cast: [], // TVMaze cast requires separate call, simplifying for now
-                    rating: show.rating?.average || null,
-                    overview: show.summary ? show.summary.replace(/<[^>]*>/g, '') : 'Sem sinopse disponível.',
-                    poster: show.image?.medium || 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster',
-                    network: show.network?.name || show.webChannel?.name || 'Desconhecido',
-                    status: show.status,
-                    original_data: show
+                    title: det.name || show.name,
+                    year: (det.premiered || show.premiered || '').slice(0,4),
+                    genres: det.genres || show.genres || [],
+                    cast,
+                    rating: (det.rating && typeof det.rating.average === 'number') ? det.rating.average : null,
+                    overview,  // ← Note que agora é só 'overview', não inline
+                    poster: det.image?.original || det.image?.medium || 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster',
+                    network: det.network?.name || det.webChannel?.name || 'Desconhecido',
+                    status: det.status || '—',
+                    original_data: det
                 };
-            } catch (error) {
-                console.error('Erro TVMaze:', error);
+            } catch (e) {
+                console.error('Erro TVMaze:', e);
                 return null;
             }
         }
