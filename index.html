@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CineTrash - Críticas Ácidas de Cinema</title>
-    <meta name="description" content="Críticas sinceras e ácidas sobre os piores filmes do cinema. Onde filme ruim é elogio!">
+    <title>CineTrash - Críticas Ácidas de Cinema e TV</title>
+    <meta name="description" content="Críticas sinceras e ácidas sobre filmes e séries. Onde conteúdo ruim é elogio!">
     <style>
         * {
             margin: 0;
@@ -85,21 +85,59 @@
         }
         
         .api-status {
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            background: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 0.85em;
         }
         
-        .api-status.connected {
+        .status-item {
+            padding: 4px 12px;
+            border-radius: 15px;
+            background: #f0f0f0;
+            text-align: center;
+        }
+        
+        .status-item.connected {
             background: #d4edda;
             color: #155724;
+        }
+        
+        .search-controls {
+            margin-bottom: 20px;
+        }
+        
+        .content-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+        
+        .type-btn {
+            padding: 8px 20px;
+            border: 2px solid #764ba2;
+            border-radius: 20px;
+            background: white;
+            color: #764ba2;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .type-btn.active {
+            background: #764ba2;
+            color: white;
+        }
+        
+        .type-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
         }
         
         .search-box {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
         }
         
         input[type="text"] {
@@ -150,12 +188,30 @@
         
         .demo-title {
             color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .demo-categories {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
             margin-bottom: 10px;
+        }
+        
+        .demo-category {
+            text-align: center;
+        }
+        
+        .demo-category h4 {
+            color: #764ba2;
+            margin-bottom: 8px;
+            font-size: 0.9em;
         }
         
         .demo-buttons {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -163,11 +219,12 @@
         .demo-btn {
             background: rgba(255,255,255,0.2);
             color: white;
-            padding: 8px 20px;
+            padding: 6px 16px;
             border: 2px solid white;
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.3s;
+            font-size: 0.85em;
         }
         
         .demo-btn:hover {
@@ -175,7 +232,7 @@
             color: #764ba2;
         }
         
-        .movie-card {
+        .content-card {
             background: white;
             border-radius: 20px;
             overflow: hidden;
@@ -195,14 +252,14 @@
             }
         }
         
-        .movie-header {
+        .content-header {
             display: flex;
             background: #f8f9fa;
             padding: 20px;
             gap: 20px;
         }
         
-        .movie-poster {
+        .content-poster {
             width: 150px;
             height: 225px;
             border-radius: 10px;
@@ -210,19 +267,30 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         
-        .movie-info {
+        .content-info {
             flex: 1;
         }
         
-        .movie-title {
+        .content-title {
             font-size: 1.8em;
             color: #333;
             margin-bottom: 10px;
         }
         
-        .movie-meta {
+        .content-meta {
             color: #666;
             line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .source-badge {
+            display: inline-block;
+            background: #764ba2;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin-bottom: 10px;
         }
         
         .trash-rating {
@@ -230,7 +298,7 @@
             margin: 10px 0;
         }
         
-        .movie-content {
+        .content-body {
             padding: 20px;
         }
         
@@ -278,22 +346,6 @@
             border-left: 4px solid #ffc107;
         }
         
-        .section.locked {
-            background: repeating-linear-gradient(
-                45deg,
-                #f5f5f5,
-                #f5f5f5 10px,
-                #e0e0e0 10px,
-                #e0e0e0 20px
-            );
-            opacity: 0.7;
-        }
-        
-        .locked .section-content {
-            filter: blur(3px);
-            user-select: none;
-        }
-        
         footer {
             background: rgba(0,0,0,0.2);
             color: white;
@@ -303,15 +355,21 @@
             border-radius: 20px 20px 0 0;
         }
         
-        .tmdb-attribution {
+        .api-attributions {
             display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
-        .tmdb-logo {
+        .attribution-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .api-logo {
             height: 30px;
         }
         
@@ -321,25 +379,16 @@
             line-height: 1.6;
         }
         
-        .social-links {
-            margin-top: 20px;
-        }
-        
-        .social-links a {
-            color: white;
-            text-decoration: none;
-            margin: 0 10px;
-            font-size: 1.2em;
-        }
-        
         .hidden {
             display: none;
         }
         
         @media (max-width: 600px) {
             h1 { font-size: 2em; }
-            .movie-header { flex-direction: column; }
-            .movie-poster { width: 100%; height: auto; }
+            .content-header { flex-direction: column; }
+            .content-poster { width: 100%; height: auto; }
+            .demo-categories { flex-direction: column; gap: 15px; }
+            .api-attributions { flex-direction: column; gap: 15px; }
         }
     </style>
 </head>
@@ -348,21 +397,38 @@
         <header>
             <div class="logo">🗑️</div>
             <h1>CineTrash</h1>
-            <p class="tagline">Críticas ácidas e sinceras sobre cinema</p>
+            <p class="tagline">Críticas ácidas de filmes e séries</p>
             <span class="beta-badge">BETA - 100% Grátis</span>
         </header>
         
         <div class="search-section">
             <div class="search-header">
-                <h2>🎬 Destrua um Filme</h2>
-                <span id="apiStatus" class="api-status">🔌 Desconectado</span>
+                <h2>🎬 Destrua um Conteúdo</h2>
+                <div class="api-status">
+                    <div class="status-item" id="tmdbStatus">🎬 TMDB: Desconectado</div>
+                    <div class="status-item" id="tvmazeStatus">📺 TVMaze: Desconectado</div>
+                </div>
             </div>
             
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Digite o nome do filme..." disabled>
-                <button class="btn btn-primary" onclick="searchMovie()" disabled id="searchBtn">
-                    🔍 Buscar
-                </button>
+            <div class="search-controls">
+                <div class="content-type-selector">
+                    <button class="type-btn active" data-type="movie" onclick="selectContentType('movie')">
+                        🎬 Filmes
+                    </button>
+                    <button class="type-btn" data-type="tv" onclick="selectContentType('tv')">
+                        📺 Séries
+                    </button>
+                    <button class="type-btn" data-type="both" onclick="selectContentType('both')">
+                        🔍 Ambos
+                    </button>
+                </div>
+                
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Digite o nome do filme ou série..." disabled>
+                    <button class="btn btn-primary" onclick="searchContent()" disabled id="searchBtn">
+                        🔍 Buscar
+                    </button>
+                </div>
             </div>
             
             <div style="text-align: center; margin-top: 10px;">
@@ -374,520 +440,488 @@
         
         <div class="demo-section">
             <p class="demo-title">🎯 Exemplos rápidos:</p>
-            <div class="demo-buttons">
-                <button class="demo-btn" onclick="quickSearch('Barbie')">Barbie</button>
-                <button class="demo-btn" onclick="quickSearch('Velozes e Furiosos')">Velozes e Furiosos</button>
-                <button class="demo-btn" onclick="quickSearch('Batman')">Batman</button>
-                <button class="demo-btn" onclick="quickSearch('Transformers')">Transformers</button>
+            <div class="demo-categories">
+                <div class="demo-category">
+                    <h4>🎬 Filmes</h4>
+                    <div class="demo-buttons">
+                        <button class="demo-btn" onclick="quickSearch('Barbie', 'movie')">Barbie</button>
+                        <button class="demo-btn" onclick="quickSearch('Transformers', 'movie')">Transformers</button>
+                        <button class="demo-btn" onclick="quickSearch('Morbius', 'movie')">Morbius</button>
+                    </div>
+                </div>
+                <div class="demo-category">
+                    <h4>📺 Séries</h4>
+                    <div class="demo-buttons">
+                        <button class="demo-btn" onclick="quickSearch('Breaking Bad', 'tv')">Breaking Bad</button>
+                        <button class="demo-btn" onclick="quickSearch('Game of Thrones', 'tv')">Game of Thrones</button>
+                        <button class="demo-btn" onclick="quickSearch('The Office', 'tv')">The Office</button>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <div id="movieResults"></div>
+        <div id="contentResults"></div>
         
         <footer>
-            <div class="tmdb-attribution">
-                <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg" 
-                     alt="TMDB" class="tmdb-logo">
-                <span>Powered by TMDB API</span>
+            <div class="api-attributions">
+                <div class="attribution-item">
+                    <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg" 
+                         alt="TMDB" class="api-logo">
+                    <span><strong>Filmes:</strong> TMDB API</span>
+                </div>
+                <div class="attribution-item">
+                    <span style="font-size: 24px;">📺</span>
+                    <span><strong>Séries:</strong> <a href="https://www.tvmaze.com" style="color: white;">TVMaze</a></span>
+                </div>
             </div>
+            
             <p class="disclaimer">
-                ⚠️ <strong>AVISO LEGAL:</strong><br>
-                Este site usa TMDB e as APIs do TMDB mas não é endossado, certificado ou aprovado pelo TMDB.<br>
-                Todas as críticas são opiniões satíricas para fins de entretenimento.<br>
-                © 2024 CineTrash - Projeto gratuito e open source
+                ⚠️ <strong>AVISOS LEGAIS:</strong><br>
+                • <strong>Filmes:</strong> Este site usa TMDB e as APIs do TMDB mas não é endossado, certificado ou aprovado pelo TMDB.<br>
+                • <strong>Séries:</strong> Dados de TV fornecidos por <a href="https://www.tvmaze.com" style="color: white;">TVMaze</a> sob licença <a href="https://creativecommons.org/licenses/by-sa/4.0/" style="color: white;">CC BY-SA 4.0</a>.<br>
+                • Todas as críticas são opiniões satíricas para fins de entretenimento.<br>
+                © 2024 CineTrash - Projeto educacional não comercial
             </p>
-            <div class="social-links">
-                <a href="#" title="GitHub">💻</a>
-                <a href="#" title="Twitter">🐦</a>
-                <a href="#" title="Instagram">📸</a>
-            </div>
         </footer>
     </div>
 
     <script>
-        // API Key embutida para demo (você pode trocar pela sua)
-        const API_KEY = 'd76cf4268b2dcb1b8f8064ee015e7c5d'; // TROQUE PELA SUA KEY!
-        const BASE_URL = 'https://api.themoviedb.org/3';
-        const IMG_BASE = 'https://image.tmdb.org/t/p/w500';
+        // === CONFIGURAÇÕES DAS APIS ===
+        const TMDB_API_KEY = 'd76cf4268b2dcb1b8f8064ee015e7c5d'; // TROQUE PELA SUA!
+        const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+        const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p/w500';
         
-        // ---------- RNG determinístico por filme ----------
-        function cyrb128(str){
-        let h1=1779033703,h2=3144134277,h3=1013904242,h4=2773480762;
-        for(let i=0;i<str.length;i++){
-            let ch=str.charCodeAt(i);
-            h1=h2^Math.imul(h1^ch,597399067); h2=h3^Math.imul(h2^ch,2869860233);
-            h3=h4^Math.imul(h3^ch,951274213); h4=h1^Math.imul(h4^ch,2716044179);
-        }
-        h1=Math.imul(h3^(h1>>>18),597399067); h2=Math.imul(h4^(h2>>>22),2869860233);
-        h3=Math.imul(h1^(h3>>>17),951274213); h4=Math.imul(h2^(h4>>>19),2716044179);
-        return [(h1^h2^h3^h4)>>>0];
-        }
-        function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^(t>>>15),t|1);
-        t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
-        function pick(arr,rng){ return (!arr || !arr.length) ? "" : arr[Math.floor(rng()*arr.length)] }
-        function uniqLines(lines){return [...new Set(lines.filter(Boolean))]}
-
-        // ---------- Banco de piadas (expandível) ----------
+        const TVMAZE_BASE_URL = 'https://api.tvmaze.com';
+        
+        // Estado da aplicação
+        let currentContentType = 'movie';
+        
+        // === MOTOR DE CRÍTICAS EXPANDIDO ===
         const ROAST_DB = {
-            base_action: [ // só para filmes de ação
-                "Orçamento generoso para explodir {coisa}...",
-                "Explosões suficientes para três filmes do Michael Bay",
-                "Explodiram {coisa} porque tinham orçamento, não roteiro.",
-            ],
-            base_drama: [ // para dramas/thrillers
-                "Silêncios tão longos que você reconsidera sua própria vida.",
-                "Tensão que poderia ser resolvida com uma conversa de 2 minutos",
-                "Conflito que seria resolvido em 2 minutos de conversa."
-            ],
-            base: [
+            // Bases por tipo de conteúdo
+            base_movie: [
                 "Orçamento generoso para explodir {coisa} enquanto o roteiro tira férias.",
                 "A fotografia é tão escura que o brilho da TV virou personagem.",
-                "Se {ator} tivesse lido o roteiro até o fim, talvez tivesse dito 'passo'.",
-                "Uma carta de amor aos clichês: com direito a slow motion e monólogo motivacional."
+                "Se {ator} tivesse lido o roteiro até o fim, talvez tivesse dito 'passo'."
             ],
-            era80: [
-                "Cheiro de VHS e gel de cabelo nos créditos.",
-                "Trilha de sintetizador que faz qualquer perseguição parecer comercial de tênis."
+            base_tv: [
+                "Temporadas suficientes para você repensar suas escolhas de vida.",
+                "Plot que se arrasta mais que fila do SUS.",
+                "Cancelaram no cliffhanger. Até o Netflix tem dó do espectador.",
+                "Mais episódios que desenvolvimento de personagem.",
+                "Showrunner mudou 3 vezes. Coerência narrativa pediu demissão."
             ],
-            era90: [
-                "Quando o blockbuster achava que barulho bastava.",
-                "CGI recém-nascido tentando pagar boletos."
-            ],
-            era2000: [
-                "Câmera tremida o suficiente para exigir cinto no sofá.",
-                "Edição com cortes por minuto maior que batimentos cardíacos."
-            ],
-            Ação: [
-                "A física pediu demissão na primeira cena.",
-                "Explosões suficientes para três filmes do Michael Bay."
-            ],
-            Comédia: [
-                "Piadas explicadas duas vezes para garantir que ninguém ria por engano.",
-                "Humor com risada enlatada invisível."
-            ],
-            Terror: [
-                "Jumpscare por minuto: {numero}; desenvolvimento: zero.",
-                "Casa obviamente assombrada vendida como 'pechincha' no OLX.",
-                "Protagonista investiga barulho sozinho no escuro. Darwin aplaude",
-                "Criança cantando cantiga sinistra. Que inovador!",
-                "Família se muda pra casa onde morreu todo mundo. Aluguel barato justifica"
-            ],
+            
+            // Gêneros expandidos para TV
             Drama: [
                 "Silêncios dramáticos tão longos que você revê suas escolhas de vida.",
-                "Close no olhar úmido resolve qualquer arco."
+                "Close no olhar úmido resolve qualquer arco narrativo."
             ],
-            ficcao_cientifica: [
-                "Tecnoblabla suficiente para abrir uma startup.",
-                "As leis da robótica foram substituídas pelas do roteiro."
+            Crime: [
+                "Investigação que Sherlock Holmes resolveria em 20 minutos.",
+                "Plot twist que você sacou no episódio piloto."
             ],
-            Suspense: [
-                "Twist que você sacou no trailer, mas finge surpresa por educação.",
-                "Todo mundo suspeito, inclusive o microfone de lapela."
-            ],
-
             Thriller: [
-                "Tensão construída em 90 minutos, destruída em 5 com plot twist óbvio",
-                "Todo mundo é suspeito, especialmente quem parece mais inocente",
-                "Protagonista confia em quem não devia. Audiência grita na tela",
-                "Red flags do tamanho do Empire State, protagonista: 'parece gente boa'",
-                "Plot twist que você sacou no trailer mas o filme acha que é genial"
+                "Tensão construída em 5 episódios, destruída em 2 minutos de revelação boba.",
+                "Todo mundo é suspeito, especialmente quem parece mais inocente."
             ],
-            Romance: [
-                "Química do casal medida em temperatura ambiente.",
-                "Cidade turística usada como personagem porque o casal não deu liga."
+            Comedy: [
+                "Humor forçado que nem risada enlatada salvaria.",
+                "Piadas explicadas duas vezes para garantir que ninguém ria."
             ],
-            Animação: [
-                "Piada para adulto escondida entre lições de moral.",
-                "Personagens fofos projetados em laboratório para vender pelúcia."
+            Fantasy: [
+                "Orçamento de CGI que não cobre nem dragão decente.",
+                "Magia que resolve tudo exceto o roteiro."
             ],
-            base_all: [
-                "Dois atos enrolando para o terceiro resolver tudo em 5 minutos.",
-                "Mais longo que precisava, menos profundo do que prometia.",
-                "Filme existe. Pessoas foram pagas. Fim.",
-                "Diretor achou que a trilha sonora resolveria o roteiro.",
-                "Você sai do cinema e esquece do filme antes de chegar no carro."
-            ],
-
-            base_brasileiro: [ // Só pra filmes BR
-                "Produção bancada com dinheiro que podia ter ido pro Posto de Saúde",
-                "Lei Rouanet trabalhando mais que o protagonista",
-                "Mais longo que fila do SUS, menos produtivo"
-            ],
-
-            base_americano: [ // Pra filmes gringos
-                "Orçamento maior que PIB de país pequeno, roteiro menor que um tweet",
-                "Produção custou 200 milhões. 199 foram pro trailer",
-                "Hollywood reciclando ideias desde 1985"
-            ],
-
-            Comédia_Nacional: [
-                "Fabio Porchat super engraçado, só que não",
-                "Piada de sogra, funcionário público e político. Zap do tiozão virou filme",
-                "Leandro Hassum cai. Paulo Gustavo (RIP) fazia melhor",
-                "Humor Multishow elevado a cinema. Continua sendo Multishow, blah!"
-            ],
-            franquias: {
-                "Sony Spiderverse": [
-                "Universo onde a única teia que prende é a da bilheteria vazia.",
-                "Sony tentando criar um MCU… só que esqueceram o 'M' de Marvel.",
-                "Poder da clarividência usado para prever que o público ia odiar.",
-                "Spin-off tão spin-off que rodou até sair da sala de cinema.",
-                "Vilões sem carisma, heróis sem roteiro e CGI sem prazo."
-            ],
-            "internet_fail": [
-                "Filme tão ruim que virou meme antes da estreia.",
-                "Até a internet se recusou a piratear.",
-                "Versão estendida? Já é castigo suficiente a versão curta.",
-                "Mais lembrado pelos memes do que pela trama.",
-                "Bilheteria fantasma: só apareceu gente no Twitter.",
-                "Críticos disseram 'não é cinema'. A internet completou: 'também não é série, nem vídeo do TikTok… é só dor'."
-            ],
-                "Missão Impossível": [
-                "{ator} corre resolve 80% do roteiro; os outros 20% ele resolve pendurado em algo.",
-                "Roteiro baseado em 'e se ele realmente fizesse isso de verdade?'."
+            
+            // Franquias de TV
+            franquias_tv: {
+                "Game of Thrones": [
+                    "Última temporada tão ruim que fez todo mundo esquecer que gostava da série.",
+                    "8 temporadas para isso? Dragão deveria ter queimado o roteiro."
                 ],
-                "Velozes e Furiosos": [
-                "A palavra 'família' vence a gravidade pela 12ª vez.",
-                "Tune o carro, tune o roteiro, tune a paciência do espectador."
+                "The Walking Dead": [
+                    "Morreu mais devagar que os próprios zumbis.",
+                    "Sobreviveu mais que deveria. Igual aos personagens."
                 ],
-                "Transformers": [
-                "Metal batendo em metal: trilha oficial do caos.",
-                "Robôs brigam, cidade some, ninguém comenta no próximo filme."
+                "Lost": [
+                    "Mistérios que nem os roteiristas sabiam como resolver.",
+                    "Ilha misteriosa, roteiro mais misterioso ainda."
                 ],
-                "Batman": [
-                "Quanto mais chuva, mais sério o filme promete ser.",
-                "Voz grossa nível legenda obrigatória."
-                ],
-                "Marvel": [
-                "Piada a cada 30 segundos para você esquecer o vilão cinza.",
-                "Cena pós-crédito vendendo outro filme mais do que o atual."
+                "Breaking Bad": [
+                    "Tão viciante quanto a própria metanfetamina. Pelo menos essa faz sentido."
                 ]
             },
-            coisas: ["carros","prédios","helicópteros","coerência","CGI duvidoso","plot twist"]
+            
+            // Elementos comuns
+            base_all: [
+                "Mais longo que precisava, menos profundo do que prometia.",
+                "Existe. Pessoas foram pagas. Fim.",
+                "Você termina de assistir e esquece antes de desligar a TV."
+            ],
+            
+            coisas: ["carros","prédios","helicópteros","coerência","CGI duvidoso","plot twist","personagens","temporadas"]
         };
-
-        const coisas = [
-            "carros",
-            "prédios", 
-            "helicópteros",
-            "coerência",
-            "CGI da Globo",
-            "plot twist de novela das 9"
+        
+        // Templates de spoiler para séries
+        const spoilerTemplatesTv = [
+            "No final da temporada, {ator} descobre que o real vilão era o showrunner.",
+            "Cancelaram no cliffhanger. Netflix sendo Netflix.",
+            "Plot twist: era tudo flashback do protagonista morrendo no piloto.",
+            "Última temporada resolve tudo em 10 minutos. Fãs choram sangue.",
+            "Vilão era o personagem que você mais gostava. Que original.",
+            "Final aberto para temporada que nunca vai existir."
         ];
-
-        const spoilerTemplates = [
-            "No fim, {ator} descobre que o verdadeiro vilão era o contrato da sequência.",
-            "Plot twist: era tudo um sonho. Ou não. Tanto faz, ninguém liga.",
-            "{ator} salva o dia com o poder do amor. Sim, sério.",
-            "Todo mundo morre. Brincadeira, todo mundo vive. Disney++.",
-            "Vilão era o amigo do começo. Chocante como sempre.",
-            "Herói escolhe o bem. Vilão explode. Roll credits."
-        ];
-
-        const actorJokes = {
-            "Keanu Reeves": "John Wick descobriu o amor mas ainda não descobriu como atuar",
-            "Adam Sandler": "Adam Sandler faz Adam Sandler fazendo Adam Sandler",
-            "Sandra Bullock": "Sandra Bullock corre, tropeça fofa, salva o dia",
-            "Matt Damon": "Matt Damon precisa ser resgatado de novo. Gastamos bilhões salvando esse homem",
-            "Pedro Pascal": "Pedro Pascal morre heroicamente no segundo ato. É a lei",
-            "Liam Neeson": "Liam Neeson tem uma habilidade muito particular: fazer o mesmo filme 107 vezes",
-            "Ana de Armas": "Ana de Armas merece filme melhor mas o cheque compensou",
-            "Sydney Sweeney": "Sydney Sweeney chora, internet para, plot continua inexistente",
-            "Johnny Depp": "Johnny Depp fazendo cosplay de Johnny Depp de 2003",
-            "Denzel Washington": "Denzel Washington eleva material ruim para assistível. Milagre? Talvez",
-            "Scarlett Johansson": "Scarlett Johansson luta, corre, pula, tudo de salto alto e ninguém questiona",
-            "Sylvester Stallone": "Stallone murmura algo motivacional, explode tudo, fim",
-            "Jean-Claude Van Damme": "Van Damme faz espacate. Essa é a trama toda",
-            "Tom Hanks": "Tom Hanks é bonzinho demais pro filme ser interessante",
-            "Timothée Chalamet": "Timothée Chalamet: magrelo melancólico salva/destrói universo com olhar triste",
-            "Wagner Moura": "Wagner Moura grita intensamente em português, gringo acha profundo",
-            "Rodrigo Santoro": "Rodrigo Santoro: brasileiro que Hollywood só escala pra morrer épico",
-            "Tom Cruise": "Tom Cruise corre por 127 minutos, plot acontece nos outros 10",
-            "The Rock": "The Rock levanta sobrancelha, selva/cidade/planeta é salvo",
-            "Ryan Reynolds": "Ryan Reynolds interpreta Ryan Reynolds interpretando Deadpool",
-            "Jennifer Lawrence": "Jennifer Lawrence tropeça, Oscar indicado",
-            "Chris Pratt": "Chris Pratt: idiota carismático salva o dia sem querer",
-            "Will Smith": "Will Smith faz cara de Will Smith surpreso com plot de Will Smith"
-        };
-
-        // Normalizador de nomes de gêneros (TMDB -> ROAST_DB)
-        function norm(s){
-        return (s||"")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g,"") // remove acentos
-            .toLowerCase();
-        }
-
-        const GENRE_MAP = {
-        "acao": "Ação",
-        "comedia": "Comédia",
-        "terror": "Terror",
-        "drama": "Drama",
-        "ficcao cientifica": "ficcao_cientifica",
-        "suspense": "Suspense",
-        "romance": "Romance",
-        "animacao": "Animação"
-        };
-
-        function mapGenre(name){
-        return GENRE_MAP[norm(name)] || "base";
-        }
-
-
-        // Detecta franquia por título
-        function detectFranchises(title) {
-            const t = (title || "").toLowerCase();
-            const tags = [];
-
-            if (/miss[aã]o imposs[ií]vel/.test(t)) tags.push("Missão Impossível");
-            if (/velozes|furiosos|fast.*furious/.test(t)) tags.push("Velozes e Furiosos");
-            if (/transformers/.test(t)) tags.push("Transformers");
-            if (/batman/.test(t)) tags.push("Batman");
-
-            // Casos “internet já destruiu”
-            if (/madame teia|morbius|cats|dragonball evolution|esquadrao suicida/.test(t)) {
-                tags.push("internet_fail");
+        
+        // === FUNÇÕES DE UTILIDADE ===
+        function cyrb128(str){
+            let h1=1779033703,h2=3144134277,h3=1013904242,h4=2773480762;
+            for(let i=0;i<str.length;i++){
+                let ch=str.charCodeAt(i);
+                h1=h2^Math.imul(h1^ch,597399067); h2=h3^Math.imul(h2^ch,2869860233);
+                h3=h4^Math.imul(h3^ch,951274213); h4=h1^Math.imul(h4^ch,2716044179);
             }
-            // Casos do “Sony Spiderverse” (Madame Teia / Morbius / Venom)
-            if (/madame teia|morbius|venom/.test(t)) {
-                tags.push("Sony Spiderverse");
-            }
-
-            if (/vingadores|marvel|homem de ferro|thor|capit[aã]o am[eé]rica|pantera negra/.test(t)) {
-                tags.push("Marvel");
-            }
-
-            return tags;
+            h1=Math.imul(h3^(h1>>>18),597399067); h2=Math.imul(h4^(h2>>>22),2869860233);
+            h3=Math.imul(h1^(h3>>>17),951274213); h4=Math.imul(h2^(h4>>>19),2716044179);
+            return [(h1^h2^h3^h4)>>>0];
         }
-
-        // Era por ano
-        function eraTag(year){
-        const y = parseInt(year,10);
-        if (!y) return null;
-        if (y<1990) return "era80";
-        if (y<2000) return "era90";
-        if (y<2010) return "era2000";
-        return null;
+        
+        function mulberry32(a){
+            return function(){
+                let t=a+=0x6D2B79F5;
+                t=Math.imul(t^(t>>>15),t|1);
+                t^=t+Math.imul(t^(t>>>7),t|61);
+                return((t^(t>>>14))>>>0)/4294967296
+            }
         }
-
-        // Heurística de trash score (determinística + leve jitter)
-        function computeTrashScore(voteAvg, rng){
+        
+        function pick(arr,rng){ 
+            return (!arr || !arr.length) ? "" : arr[Math.floor(rng()*arr.length)] 
+        }
+        
+        function templ(str, ctx){
+            return str
+                .replaceAll("{ator}", ctx.ator || "o protagonista")
+                .replaceAll("{coisa}", pick(ROAST_DB.coisas, ctx.rng))
+                .replaceAll("{numero}", String(1 + Math.floor(ctx.rng()*4)));
+        }
+        
+        function computeTrashScore(rating, rng, isTV = false){
             let base = 3;
-            if (typeof voteAvg === "number") {
-                base = Math.ceil((10 - voteAvg) / 1.5); // MUDOU AQUI
+            if (typeof rating === "number") {
+                // Para séries, usar rating do TVMaze (0-10), para filmes TMDB (0-10)
+                base = Math.ceil((10 - rating) / 1.5);
                 base = Math.max(1, Math.min(5, base));
             }
-            // Remove o código do jitter que estava aqui
             return base;
         }
-
-        // Template → substituições
-        function templ(str, ctx){
-        return str
-            .replaceAll("{ator}", ctx.ator || "o protagonista")
-            .replaceAll("{coisa}", pick(ROAST_DB.coisas, ctx.rng))
-            .replaceAll("{numero}", String(1 + Math.floor(ctx.rng()*4)));
-        }
-
-        function isFilmeBrasileiro(title, cast = []) {
-            const tituloBR = /\b(tropa|cidade|central|favela|bacurau|aquarius)\b/i.test(title);
-            const atorBR = cast.some(actor => 
-                /wagner|selton|lazaro|grazi|caua|rodrigo santoro|alice braga/i.test(actor.name)
-            );
-            return tituloBR || atorBR;
-        }
-        // Motor principal
-        function gerarCriticaSatira({ title, year, genres = [], cast = [], voteAvg }) {
-            const seed = cyrb128(`${title}|${year}`)[0];
+        
+        // === MOTOR DE CRÍTICAS PRINCIPAL ===
+        function gerarCriticaConteudo({ title, year, genres = [], cast = [], rating, type = 'movie' }) {
+            const seed = cyrb128(`${title}|${year}|${type}`)[0];
             const rng = mulberry32(seed);
             const ctx = { rng, ator: cast[0]?.name };
-
-            const g = genres[0] ? mapGenre(genres[0]) : "base";
-            const franqs = detectFranchises(title);     // <<--- agora é lista
-            const era = eraTag(year);
-            const isBR = isFilmeBrasileiro(title, cast);
-
+            
             const lines = [];
-
-            // 1) PRIORIDADE: franquias primeiro (vai pro topo)
-            for (const tag of franqs) {
-                if (ROAST_DB.franquias[tag]) {
-                lines.unshift(pick(ROAST_DB.franquias[tag], rng));  // <--- entra na frente
-                }
+            const isTV = type === 'tv';
+            
+            // Base por tipo de conteúdo
+            const baseContent = isTV ? ROAST_DB.base_tv : ROAST_DB.base_movie;
+            lines.push(pick(baseContent, rng));
+            
+            // Franquias específicas de TV
+            if (isTV && ROAST_DB.franquias_tv[title]) {
+                lines.unshift(pick(ROAST_DB.franquias_tv[title], rng));
             }
-
-            // 2) Nacionalidade
-            if (isBR) lines.push(pick(ROAST_DB.base_brasileiro, rng));
-            else lines.push(pick(ROAST_DB.base_americano, rng));
-
-            // 3) Universal
-            lines.push(pick(ROAST_DB.base_all, rng));
-
-            // 4) Base por “família” de gênero
-            if (g === "Terror" || g === "Thriller" || g === "Suspense") {
-                lines.push(pick(ROAST_DB.base_drama || ROAST_DB.base_all, rng));
-            } else if (g === "Ação") {
-                lines.push(pick(ROAST_DB.base_action || ROAST_DB.base_all, rng));
-            } else {
+            
+            // Gêneros
+            const primaryGenre = genres[0];
+            if (primaryGenre && ROAST_DB[primaryGenre]) {
+                lines.push(pick(ROAST_DB[primaryGenre], rng));
+            }
+            
+            // Base geral
+            for (let i = 0; i < 3; i++) {
                 lines.push(pick(ROAST_DB.base_all, rng));
             }
-
-            // 5) Específicas de gênero
-            if (ROAST_DB[g]) {
-                for (let i = 0; i < 2; i++) lines.push(pick(ROAST_DB[g], rng));
-            }
-
-            // 6) Base gerais
-            for (let i = 0; i < 3; i++) lines.push(pick(ROAST_DB.base, rng));
-
-            // 7) Era
-            if (era && ROAST_DB[era]) lines.push(pick(ROAST_DB[era], rng));
-
-            // 8) Piada do ator (se houver)
-            const actorName = cast[0]?.name;
-            if (actorName && actorJokes[actorName]) lines.push(actorJokes[actorName]);
-
-            const uniqueLines = uniqLines(lines).map(s => templ(s, ctx));
-
-            const sinopse = `${title} (${year || "????"}). ${uniqueLines[0] || "Filme existe."}`;
+            
+            const uniqueLines = [...new Set(lines.filter(Boolean))].map(s => templ(s, ctx));
+            
+            const sinopse = `${title} (${year || "????"}). ${uniqueLines[0] || "Conteúdo existe."}`;
             const analise = uniqueLines
-                .slice(1, 5)
+                .slice(1, 4)
                 .map(s => s.replace(/[.?!]\s*$/, ""))
                 .join(". ") + ".";
-
+            
+            const spoilerTemplates = isTV ? spoilerTemplatesTv : [
+                "No fim, {ator} descobre que o verdadeiro vilão era o contrato da sequência.",
+                "Plot twist: era tudo um sonho. Ou não. Tanto faz.",
+                "{ator} salva o dia com o poder do amor. Sério.",
+                "Vilão era o amigo do começo. Chocante como sempre."
+            ];
+            
             const spoiler = templ(pick(spoilerTemplates, rng), ctx);
-            const trash_score = computeTrashScore(voteAvg, rng);
-
+            const trash_score = computeTrashScore(rating, rng, isTV);
+            
             return { sinopse, analise, spoiler, trash_score };
         }
         
-        // Função para inicializar o app
-        function initializeApp() {
-            // Simula conexão com API
-            const status = document.getElementById('apiStatus');
+        // === FUNÇÕES DA INTERFACE ===
+        function selectContentType(type) {
+            currentContentType = type;
+            
+            // Atualiza botões
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+            
+            // Atualiza placeholder
+            const input = document.getElementById('searchInput');
+            switch(type) {
+                case 'movie':
+                    input.placeholder = "Digite o nome do filme...";
+                    break;
+                case 'tv':
+                    input.placeholder = "Digite o nome da série...";
+                    break;
+                case 'both':
+                    input.placeholder = "Digite o nome do filme ou série...";
+                    break;
+            }
+        }
+        
+        async function initializeApp() {
+            const tmdbStatus = document.getElementById('tmdbStatus');
+            const tvmazeStatus = document.getElementById('tvmazeStatus');
             const searchInput = document.getElementById('searchInput');
             const searchBtn = document.getElementById('searchBtn');
             
-            status.textContent = '⏳ Conectando...';
+            // Testa TMDB
+            tmdbStatus.textContent = '🎬 TMDB: Conectando...';
+            try {
+                const response = await fetch(`${TMDB_BASE_URL}/configuration?api_key=${TMDB_API_KEY}`);
+                if (response.ok) {
+                    tmdbStatus.textContent = '🎬 TMDB: ✅ Conectado';
+                    tmdbStatus.classList.add('connected');
+                } else {
+                    throw new Error('TMDB connection failed');
+                }
+            } catch (error) {
+                tmdbStatus.textContent = '🎬 TMDB: ❌ Erro';
+            }
             
-            setTimeout(() => {
-                status.textContent = '✅ Conectado';
-                status.classList.add('connected');
-                searchInput.disabled = false;
-                searchBtn.disabled = false;
-                searchInput.focus();
-            }, 1000);
+            // Testa TVMaze (sempre funciona, não precisa de key)
+            tvmazeStatus.textContent = '📺 TVMaze: Conectando...';
+            try {
+                const response = await fetch(`${TVMAZE_BASE_URL}/shows/1`);
+                if (response.ok) {
+                    tvmazeStatus.textContent = '📺 TVMaze: ✅ Conectado';
+                    tvmazeStatus.classList.add('connected');
+                } else {
+                    throw new Error('TVMaze connection failed');
+                }
+            } catch (error) {
+                tvmazeStatus.textContent = '📺 TVMaze: ❌ Erro';
+            }
+            
+            // Ativa interface
+            searchInput.disabled = false;
+            searchBtn.disabled = false;
+            searchInput.focus();
         }
         
-        // Função para buscar filme (simulada por enquanto)
-        async function searchMovie() {
-        const q = document.getElementById('searchInput').value.trim();
-        if (!q) {
-            alert('Digite o nome de um filme para destruir! 😈');
-            return;
-        }
-
-        const results = document.getElementById('movieResults');
-        results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">🔍 Procurando filme para destruir...</div>';
-
-        try {
-            // 1. Busca filme no TMDB
-            const r = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=pt-BR&query=${encodeURIComponent(q)}`);
-            const data = await r.json();
-            const movie = data.results?.[0];
-            if (!movie) {
-            results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">🤷‍♂️ Não achei esse filme no TMDB…</div>';
-            return;
+        // === FUNÇÕES DE BUSCA ===
+        async function searchTMDB(query) {
+            try {
+                const response = await fetch(
+                    `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&language=pt-BR&query=${encodeURIComponent(query)}`
+                );
+                const data = await response.json();
+                const movie = data.results?.[0];
+                
+                if (!movie) return null;
+                
+                // Busca detalhes completos
+                const [detailsResp, creditsResp] = await Promise.all([
+                    fetch(`${TMDB_BASE_URL}/movie/${movie.id}?api_key=${TMDB_API_KEY}&language=pt-BR`),
+                    fetch(`${TMDB_BASE_URL}/movie/${movie.id}/credits?api_key=${TMDB_API_KEY}&language=pt-BR`)
+                ]);
+                
+                const details = detailsResp.ok ? await detailsResp.json() : {};
+                const credits = creditsResp.ok ? await creditsResp.json() : {};
+                
+                return {
+                    type: 'movie',
+                    source: 'TMDB',
+                    title: movie.title,
+                    year: (movie.release_date || '').slice(0, 4),
+                    genres: details.genres?.map(g => g.name) || [],
+                    cast: (credits.cast || []).slice(0, 3),
+                    rating: movie.vote_average,
+                    overview: movie.overview,
+                    poster: movie.poster_path 
+                        ? `${TMDB_IMG_BASE}${movie.poster_path}` 
+                        : 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster',
+                    original_data: movie
+                };
+            } catch (error) {
+                console.error('Erro TMDB:', error);
+                return null;
             }
-
-            // 2. Busca detalhes (gêneros) + créditos (atores)
-            const [detailsResp, creditsResp] = await Promise.all([
-            fetch(`${BASE_URL}/movie/${movie.id}?api_key=${API_KEY}&language=pt-BR`),
-            fetch(`${BASE_URL}/movie/${movie.id}/credits?api_key=${API_KEY}&language=pt-BR`)
-            ]);
-            const details = detailsResp.ok ? await detailsResp.json() : {};
-            const credits = creditsResp.ok ? await creditsResp.json() : {};
-
-            const genres = details.genres?.map(g => g.name) || [];
-            const cast = (credits.cast || []).slice(0, 3);
-            const poster = movie.poster_path
-            ? `${IMG_BASE}${movie.poster_path}`
-            : 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster';
-
-            // 3. Gera sátira determinística (sem IA, sem custo)
-            const critica = gerarCriticaSatira({
-            title: movie.title,
-            year: (movie.release_date || '').slice(0, 4),
-            genres,
-            cast,
-            voteAvg: typeof movie.vote_average === 'number' ? movie.vote_average : undefined
+        }
+        
+        async function searchTVMaze(query) {
+            try {
+                const response = await fetch(
+                    `${TVMAZE_BASE_URL}/search/shows?q=${encodeURIComponent(query)}`
+                );
+                const data = await response.json();
+                const show = data[0]?.show;
+                
+                if (!show) return null;
+                
+                return {
+                    type: 'tv',
+                    source: 'TVMaze',
+                    title: show.name,
+                    year: show.premiered ? show.premiered.slice(0, 4) : '',
+                    genres: show.genres || [],
+                    cast: [], // TVMaze cast requires separate call, simplifying for now
+                    rating: show.rating?.average || null,
+                    overview: show.summary ? show.summary.replace(/<[^>]*>/g, '') : 'Sem sinopse disponível.',
+                    poster: show.image?.medium || 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster',
+                    network: show.network?.name || show.webChannel?.name || 'Desconhecido',
+                    status: show.status,
+                    original_data: show
+                };
+            } catch (error) {
+                console.error('Erro TVMaze:', error);
+                return null;
+            }
+        }
+        
+        async function searchContent() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                alert('Digite algo para destruir! 😈');
+                return;
+            }
+            
+            const results = document.getElementById('contentResults');
+            results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">🔍 Procurando conteúdo para destruir...</div>';
+            
+            const searchPromises = [];
+            
+            if (currentContentType === 'movie' || currentContentType === 'both') {
+                searchPromises.push(searchTMDB(query));
+            }
+            
+            if (currentContentType === 'tv' || currentContentType === 'both') {
+                searchPromises.push(searchTVMaze(query));
+            }
+            
+            try {
+                const searchResults = await Promise.all(searchPromises);
+                const validResults = searchResults.filter(result => result !== null);
+                
+                if (validResults.length === 0) {
+                    results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">🤷‍♂️ Nenhum conteúdo encontrado...</div>';
+                    return;
+                }
+                
+                // Mostra primeiro resultado encontrado (pode expandir para mostrar múltiplos)
+                const content = validResults[0];
+                displayContent(content);
+                
+            } catch (error) {
+                console.error('Erro na busca:', error);
+                results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">💥 Erro na busca. Tente novamente.</div>';
+            }
+        }
+        
+        function displayContent(content) {
+            const critica = gerarCriticaConteudo({
+                title: content.title,
+                year: content.year,
+                genres: content.genres,
+                cast: content.cast,
+                rating: content.rating,
+                type: content.type
             });
-
+            
             const trash = '🗑️'.repeat(critica.trash_score);
-            const tmdbScore = (movie.vote_average ?? 6.2).toFixed(1);
-
-            // 4. Monta card na tela
-                results.innerHTML = `
-                <div class="movie-card">
-                    <div class="movie-header">
-                    <img src="${poster}" alt="Poster" class="movie-poster">
-                    <div class="movie-info">
-                        <h2 class="movie-title">${movie.title}</h2>
-                        <div class="movie-meta">
-                        📅 Ano: ${(movie.release_date || '????').slice(0, 4)}<br>
-                        ⭐ Nota TMDB: ${tmdbScore}/10<br>
-                        🎬 Gênero: ${genres.join(', ') || '—'}
+            const ratingDisplay = content.rating !== null ? content.rating.toFixed(1) : 'N/A';
+            
+            const extraInfo = content.type === 'tv' 
+                ? `📺 Rede: ${content.network}<br>📊 Status: ${content.status}<br>`
+                : '';
+            
+            const typeIcon = content.type === 'tv' ? '📺' : '🎬';
+            const typeLabel = content.type === 'tv' ? 'Série' : 'Filme';
+            
+            const results = document.getElementById('contentResults');
+            results.innerHTML = `
+                <div class="content-card">
+                    <div class="content-header">
+                        <img src="${content.poster}" alt="Poster" class="content-poster">
+                        <div class="content-info">
+                            <h2 class="content-title">${content.title}</h2>
+                            <div class="source-badge">${content.source}</div>
+                            <div class="content-meta">
+                                ${typeIcon} Tipo: ${typeLabel}<br>
+                                📅 Ano: ${content.year || '????'}<br>
+                                ⭐ Nota: ${ratingDisplay}/10<br>
+                                🎬 Gênero: ${content.genres.join(', ') || '—'}<br>
+                                ${extraInfo}
+                            </div>
+                            <div class="trash-rating" title="Trash score (1-5)">${trash}</div>
                         </div>
-                        <div class="trash-rating" title="Trash score (1-5)">${trash}</div>
-                    </div>
-                    </div>
-
-                    <div class="movie-content">
-                    <div class="section">
-                        <div class="section-header">
-                        <div class="section-title">📝 SINOPSE ORIGINAL (TMDB)</div>
-                        </div>
-                        <div class="section-content">
-                        ${movie.overview || 'Sem sinopse no TMDB.'}
-                        </div>
-                    </div>
-
-                    <div class="section acida">
-                        <div class="section-header">
-                        <div class="section-title">😈 CRÍTICA ÁCIDA (Motor Satírico)</div>
-                        <span class="badge">GRÁTIS</span>
-                        </div>
-                        <div class="section-content"><strong>${critica.sinopse}</strong></div>
                     </div>
 
-                    <div class="section">
-                        <div class="section-header">
-                        <div class="section-title">🧪 ANÁLISE PROFUNDA</div>
+                    <div class="content-body">
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-title">📝 SINOPSE ORIGINAL</div>
+                            </div>
+                            <div class="section-content">
+                                ${content.overview}
+                            </div>
                         </div>
-                        <div class="section-content">${critica.analise}</div>
-                    </div>
 
-                    <div class="section">
-                        <div class="section-header">
-                        <div class="section-title">🤫 SPOILER SARCÁSTICO</div>
+                        <div class="section acida">
+                            <div class="section-header">
+                                <div class="section-title">😈 CRÍTICA ÁCIDA</div>
+                                <span class="badge">MOTOR SATÍRICO</span>
+                            </div>
+                            <div class="section-content"><strong>${critica.sinopse}</strong></div>
                         </div>
-                        <div class="section-content">${critica.spoiler}</div>
-                    </div>
+
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-title">🧪 ANÁLISE PROFUNDA</div>
+                            </div>
+                            <div class="section-content">${critica.analise}</div>
+                        </div>
+
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-title">🤫 SPOILER SARCÁSTICO</div>
+                            </div>
+                            <div class="section-content">${critica.spoiler}</div>
+                        </div>
                     </div>
                 </div>
-                `;
-        } catch (e) {
-            console.error(e);
-            results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">💥 Deu ruim. Tente novamente.</div>';
+            `;
         }
-    }
-
         
-        // Busca rápida
-        function quickSearch(movie) {
-            document.getElementById('searchInput').value = movie;
+        function quickSearch(query, type = null) {
+            if (type) {
+                selectContentType(type);
+            }
+            document.getElementById('searchInput').value = query;
             if (!document.getElementById('searchBtn').disabled) {
-                searchMovie();
+                searchContent();
             } else {
                 alert('Clique em "Ativar CineTrash" primeiro! ⚡');
             }
@@ -896,12 +930,9 @@
         // Enter para buscar
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !this.disabled) {
-                searchMovie();
+                searchContent();
             }
         });
-        
-        // Auto-inicializa (remover em produção com API real)
-        // setTimeout(initializeApp, 1000);
     </script>
 </body>
 </html>
