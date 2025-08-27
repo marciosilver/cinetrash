@@ -431,11 +431,13 @@
         const ROAST_DB = {
             base_action: [ // só para filmes de ação
                 "Orçamento generoso para explodir {coisa}...",
-                "Explosões suficientes para três filmes do Michael Bay"
+                "Explosões suficientes para três filmes do Michael Bay",
+                "Explodiram {coisa} porque tinham orçamento, não roteiro.",
             ],
             base_drama: [ // para dramas/thrillers
-                "Silêncios dramáticos tão longos que você revê suas escolhas",
-                "Tensão que poderia ser resolvida com uma conversa de 2 minutos"
+                "Silêncios tão longos que você reconsidera sua própria vida.",
+                "Tensão que poderia ser resolvida com uma conversa de 2 minutos",
+                "Conflito que seria resolvido em 2 minutos de conversa."
             ],
             base: [
                 "Orçamento generoso para explodir {coisa} enquanto o roteiro tira férias.",
@@ -464,17 +466,17 @@
                 "Humor com risada enlatada invisível."
             ],
             Terror: [
-                "Jumpscare por minuto: {numero}/min; desenvolvimento de personagem: 0/min",
-                "Casa obviamente assombrada que no OLX custa 50 mil, família: 'que pechincha'",
-                "Protagonista investiga barulho sozinho no escuro. Darwin aprova",
-                "Crianças assustadoras cantando música de ninar. Que original",
+                "Jumpscare por minuto: {numero}; desenvolvimento: zero.",
+                "Casa obviamente assombrada vendida como 'pechincha' no OLX.",
+                "Protagonista investiga barulho sozinho no escuro. Darwin aplaude",
+                "Criança cantando cantiga sinistra. Que inovador!",
                 "Família se muda pra casa onde morreu todo mundo. Aluguel barato justifica"
             ],
             Drama: [
                 "Silêncios dramáticos tão longos que você revê suas escolhas de vida.",
                 "Close no olhar úmido resolve qualquer arco."
             ],
-            "Ficção Científica": [
+            ficcao_cientifica: [
                 "Tecnoblabla suficiente para abrir uma startup.",
                 "As leis da robótica foram substituídas pelas do roteiro."
             ],
@@ -513,7 +515,7 @@
             ],
 
             base_americano: [ // Pra filmes gringos
-                "Orçamento maior que PIB de país pequeno, roteiro menor que tweet",
+                "Orçamento maior que PIB de país pequeno, roteiro menor que um tweet",
                 "Produção custou 200 milhões. 199 foram pro trailer",
                 "Hollywood reciclando ideias desde 1985"
             ],
@@ -606,7 +608,7 @@
         "comedia": "Comédia",
         "terror": "Terror",
         "drama": "Drama",
-        "ficcao cientifica": "Ficção Científica",
+        "ficcao cientifica": "ficcao_cientifica",
         "suspense": "Suspense",
         "romance": "Romance",
         "animacao": "Animação"
