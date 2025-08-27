@@ -734,7 +734,11 @@
             const uniqueLines = uniqLines(lines).map(s => templ(s, ctx));
             
             const sinopse = `${title} (${year || "????"}). ${uniqueLines[0] || "Filme existe."}`;
-            const analise = uniqueLines.slice(1, 5).join(" ");
+            const analise = uniqueLines
+                .slice(1, 5)
+                .map(s => s.replace(/[.?!]\s*$/, "")) // remove pontuação final duplicada
+                .join(". ") + ".";
+
             
             // NOVO: spoiler variado
             const spoiler = templ(pick(spoilerTemplates, rng), ctx);
