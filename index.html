@@ -480,6 +480,7 @@
                 • <strong>Filmes:</strong> Este site usa TMDB e as APIs do TMDB mas não é endossado, certificado ou aprovado pelo TMDB.<br>
                 • <strong>Séries:</strong> Dados de TV fornecidos por <a href="https://www.tvmaze.com" style="color: white;">TVMaze</a> sob licença <a href="https://creativecommons.org/licenses/by-sa/4.0/" style="color: white;">CC BY-SA 4.0</a>.<br>
                 • Todas as críticas são opiniões satíricas para fins de entretenimento.<br>
+                • Comentários coletados de threads públicas do Reddit (© seus respectivos autores).<br>
                 © 2024 CineTrash - Projeto educacional não comercial
             </p>
         </footer>
@@ -742,43 +743,154 @@
         }
 
         async function translateText(text, fromLang = "en", toLang = "pt-BR") {
-        if (!text) return text;
-        // remove tags se vier de TVMaze
-        const clean = _stripHtml(text).trim();
-        if (!clean) return "";
+            if (!text) return text;
+            // remove tags se vier de TVMaze
+            const clean = _stripHtml(text).trim();
+            if (!clean) return "";
 
-        // já é português? devolve direto
-        if (_looksPtBR(clean)) return clean;
+            // já é português? devolve direto
+            if (_looksPtBR(clean)) return clean;
 
-        // cache
-        const cacheKey = `${fromLang}|${toLang}|${clean}`;
-        if (_translateCache.has(cacheKey)) return _translateCache.get(cacheKey);
+            // cache
+            const cacheKey = `${fromLang}|${toLang}|${clean}`;
+            if (_translateCache.has(cacheKey)) return _translateCache.get(cacheKey);
 
-        // MyMemory limita ~500 chars – use 480 para margem
-        const MAX = 480;
-        const chunks = [];
-        for (let i = 0; i < clean.length; i += MAX) {
-            chunks.push(clean.slice(i, i + MAX));
-        }
-
-        const out = [];
-        for (const part of chunks) {
-            try {
-            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(part)}&langpair=${fromLang}|${toLang}`;
-            const resp = await fetch(url);
-            const data = await resp.json();
-            const ok = data?.responseStatus === 200 && data?.responseData?.translatedText;
-            out.push(ok ? data.responseData.translatedText : part);
-            // opcional: pequeno delay para respeitar cota
-            await new Promise(r => setTimeout(r, 120));
-            } catch {
-            out.push(part); // fallback do pedaço
+            // MyMemory limita ~500 chars – use 480 para margem
+            const MAX = 480;
+            const chunks = [];
+            for (let i = 0; i < clean.length; i += MAX) {
+                chunks.push(clean.slice(i, i + MAX));
             }
+
+            const out = [];
+            for (const part of chunks) {
+                try {
+                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(part)}&langpair=${fromLang}|${toLang}`;
+                const resp = await fetch(url);
+                const data = await resp.json();
+                const ok = data?.responseStatus === 200 && data?.responseData?.translatedText;
+                out.push(ok ? data.responseData.translatedText : part);
+                // opcional: pequeno delay para respeitar cota
+                await new Promise(r => setTimeout(r, 120));
+                } catch {
+                out.push(part); // fallback do pedaço
+                }
+            }
+
+            const finalText = out.join("");
+            _translateCache.set(cacheKey, finalText);
+            return finalText;
         }
 
-        const finalText = out.join("");
-        _translateCache.set(cacheKey, finalText);
-        return finalText;
+        function htmlEscape(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+        // filtro super simples para evitar link/spoiler/trechos ruins
+        function _isDecentQuote(txt){
+            if (!txt) return false;
+            if (txt.length < 30 || txt.length > 300) return false;         // muito curto/longuinho
+            if (/(http|www\.)/i.test(txt)) return false;                   // evita spam/links
+            if (/\bspoiler\b/i.test(txt)) return false;                    // evita spoiler óbvio
+            if (/[*_#>`]/.test(txt)) return false;                         // evita markdown pesado
+            return true;
+        }
+
+        // busca tópicos em alguns subreddits e extrai os melhores comentários
+        async function fetchRedditReactions(title, type){
+            const subs = (type === 'tv')
+                ? ['television', 'tvdetails', 'bestof']
+                : ['movies', 'moviecritic', 'badMovies']; // pode ajustar depois
+
+            const query = `"${title}" (discussion OR review OR thoughts OR opinion)`;
+            const params = `?q=${encodeURIComponent(query)}&restrict_sr=1&sort=top&t=all&limit=3`;
+
+            const candidatePosts = [];
+            for (const sr of subs) {
+                try {
+                const url = `https://www.reddit.com/r/${sr}/search.json${params}`;
+                const r = await fetch(url);
+                const j = await r.json();
+                (j?.data?.children || []).forEach(p => {
+                    const d = p?.data;
+                    if (!d) return;
+                    if ((d.num_comments || 0) > 10 && (d.score || 0) >= 50) {
+                    candidatePosts.push({ permalink: d.permalink, title: d.title, score: d.score });
+                    }
+                });
+                } catch (e) {
+                console.warn('Falha ao buscar /r/' + sr, e);
+                }
+            }
+
+            // escolhe até 3 tópicos únicos
+            const seen = new Set();
+            const posts = [];
+            for (const p of candidatePosts) {
+                if (seen.has(p.permalink)) continue;
+                seen.add(p.permalink);
+                posts.push(p);
+                if (posts.length >= 3) break;
+            }
+
+            const quotes = [];
+            for (const post of posts) {
+                try {
+                const url = `https://www.reddit.com${post.permalink}.json?limit=100`;
+                const r = await fetch(url);
+                const j = await r.json();
+
+                const comments = (j?.[1]?.data?.children || [])
+                    .map(c => c?.data)
+                    .filter(Boolean)
+                    .sort((a,b) => (b?.ups||0) - (a?.ups||0));
+
+                for (const c of comments) {
+                    const body = c?.body || '';
+                    if (!_isDecentQuote(body)) continue;
+
+                    // traduzindo (inglês -> pt-BR). Se já vier PT, translateText não vai retraduzir
+                    const textPt = await translateText(body, 'en', 'pt-BR');
+                    quotes.push({
+                    text: textPt,
+                    author: c?.author || 'anon',
+                    score: c?.ups || 0,
+                    link: `https://www.reddit.com${post.permalink}`
+                    });
+
+                    if (quotes.length >= 5) break; // suficiente pro card
+                }
+                if (quotes.length >= 5) break;
+                } catch (e) {
+                console.warn('Erro ao ler comentários do post', post, e);
+                }
+            }
+            return quotes;
+        }
+
+        // injeta quotes traduzidos no card
+        async function loadRedditReactions(title, type){
+            const area = document.getElementById('redditArea');
+                if (!area) return;
+                area.innerHTML = '🔎 Vasculhando a zoeira do Reddit…';
+
+                try {
+                    const quotes = await fetchRedditReactions(title, type);
+                    if (!quotes.length) {
+                    area.textContent = 'Nada muito relevante por lá — hoje você é o crítico 😅';
+                    return;
+                    }
+
+                    area.innerHTML = quotes.map(q => `
+                    <blockquote style="margin:0 0 14px 0;padding-left:14px;border-left:4px solid #eee">
+                        <p style="margin:0 0 4px 0">“${htmlEscape(q.text)}”</p>
+                        <div style="font-size:12px;opacity:.75">
+                        — <a href="${q.link}" target="_blank" rel="noopener">u/${htmlEscape(q.author)}</a> • ▲${q.score}
+                        </div>
+                    </blockquote>
+                    `).join('');
+                } catch (e) {
+                    console.error('Reddit falhou:', e);
+                    area.textContent = 'Não deu para carregar os comentários da internet agora.';
+                }
         }
         
         // === FUNÇÕES DE BUSCA ===
@@ -924,63 +1036,74 @@
             results.innerHTML = `
                 <div class="content-card">
                     <div class="content-header">
-                        <img src="${content.poster}" alt="Poster" class="content-poster">
-                        <div class="content-info">
-                            <h2 class="content-title">${content.title}</h2>
-                            <div class="source-badge">${content.source}</div>
-                            <div class="content-meta">
-                                ${typeIcon} Tipo: ${typeLabel}<br>
-                                📅 Ano: ${content.year || '????'}<br>
-                                ⭐ Nota: ${ratingDisplay}/10<br>
-                                🎬 Gênero: ${content.genres.join(', ') || '—'}<br>
-                                ${extraInfo}
-                            </div>
-                            <div class="trash-rating" title="Trash score (1-5)">${trash}</div>
+                    <img src="${content.poster}" alt="Poster" class="content-poster">
+                    <div class="content-info">
+                        <h2 class="content-title">${content.title}</h2>
+                        <div class="source-badge">${content.source}</div>
+                        <div class="content-meta">
+                        ${typeIcon} Tipo: ${typeLabel}<br>
+                        📅 Ano: ${content.year || '????'}<br>
+                        ⭐ Nota: ${ratingDisplay}/10<br>
+                        🎬 Gênero: ${content.genres.join(', ') || '—'}<br>
+                        ${extraInfo}
                         </div>
+                        <div class="trash-rating" title="Trash score (1-5)">${trash}</div>
+                    </div>
                     </div>
 
                     <div class="content-body">
-                        <div class="section">
-                            <div class="section-header">
-                                <div class="section-title">📝 SINOPSE ORIGINAL</div>
-                            </div>
-                            <div class="section-content" id="synopsisArea">
-                                ${content.overview}
-                            </div>
+                    <div class="section">
+                        <div class="section-header">
+                        <div class="section-title">📝 SINOPSE ORIGINAL</div>
                         </div>
-
-                        <div class="section acida">
-                            <div class="section-header">
-                                <div class="section-title">😈 CRÍTICA ÁCIDA</div>
-                                <span class="badge">MOTOR SATÍRICO</span>
-                            </div>
-                            <div class="section-content"><strong>${critica.sinopse}</strong></div>
-                        </div>
-
-                        <div class="section">
-                            <div class="section-header">
-                                <div class="section-title">🧪 ANÁLISE PROFUNDA</div>
-                            </div>
-                            <div class="section-content">${critica.analise}</div>
-                        </div>
-
-                        <div class="section">
-                            <div class="section-header">
-                                <div class="section-title">🤫 SPOILER SARCÁSTICO</div>
-                            </div>
-                            <div class="section-content">${critica.spoiler}</div>
+                        <div class="section-content" id="synopsisArea">
+                        ${content.overview}
                         </div>
                     </div>
-                </div>
-            `;
 
+                    <div class="section acida">
+                        <div class="section-header">
+                        <div class="section-title">😈 CRÍTICA ÁCIDA</div>
+                        <span class="badge">MOTOR SATÍRICO</span>
+                        </div>
+                        <div class="section-content"><strong>${critica.sinopse}</strong></div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-header">
+                        <div class="section-title">🧪 ANÁLISE PROFUNDA</div>
+                        </div>
+                        <div class="section-content">${critica.analise}</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-header">
+                        <div class="section-title">🗣️ ZOEIRA DA GALERA (Reddit)</div>
+                        </div>
+                        <div class="section-content" id="redditArea">—</div>
+                        <div style="font-size:12px;opacity:.65;margin-top:6px">
+                        Trechos públicos do Reddit, traduzidos automaticamente • clique para abrir a discussão original.
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-header">
+                        <div class="section-title">🤫 SPOILER SARCÁSTICO</div>
+                        </div>
+                        <div class="section-content">${critica.spoiler}</div>
+                    </div>
+                    </div>
+                </div>
+                `;
             // 🔄 Tradução assíncrona da sinopse
             const synopsisEl = document.getElementById("synopsisArea");
             translateText(content.overview, "en", "pt-BR").then(t => {
                 if (t && t !== content.overview) synopsisEl.textContent = t;
             });
-        }
 
+            // carrega reações do Reddit
+            loadRedditReactions(content.title, content.type);
+        }
         
         function quickSearch(query, type = null) {
             if (type) {
