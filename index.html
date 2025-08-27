@@ -506,6 +506,18 @@
                 "2 horas da sua vida que você não vai recuperar"
             ],
 
+            base_brasileiro: [ // Só pra filmes BR
+                "Produção bancada com dinheiro que podia ter ido pro Posto de Saúde",
+                "Lei Rouanet trabalhando mais que o protagonista",
+                "Mais longo que fila do SUS, menos produtivo"
+            ],
+
+            base_americano: [ // Pra filmes gringos
+                "Orçamento maior que PIB de país pequeno, roteiro menor que tweet",
+                "Produção custou 200 milhões. 199 foram pro trailer",
+                "Hollywood reciclando ideias desde 1985"
+            ],
+
             Comédia_Nacional: [
                 "Fabio Porchat super engraçado, só que não",
                 "Piada de sogra, funcionário público e político. Zap do tiozão virou filme",
@@ -645,6 +657,13 @@
             .replaceAll("{numero}", String(1 + Math.floor(ctx.rng()*4)));
         }
 
+        function isFilmeBrasileiro(title, cast = []) {
+            const tituloBR = /\b(tropa|cidade|central|favela|bacurau|aquarius)\b/i.test(title);
+            const atorBR = cast.some(actor => 
+                /wagner|selton|lazaro|grazi|caua|rodrigo santoro|alice braga/i.test(actor.name)
+            );
+            return tituloBR || atorBR;
+        }
         // Motor principal
         function gerarCriticaSatira({ title, year, genres=[], cast=[], voteAvg }){
             const seed = cyrb128(`${title}|${year}`)[0];
@@ -654,9 +673,20 @@
             const g = genres[0] ? mapGenre(genres[0]) : "base";
             const franq = detectFranchise(title);
             const era = eraTag(year);
+            const isBR = isFilmeBrasileiro(title, cast);
 
             // NOVO: gera mais linhas
             const lines = [];
+
+            // Escolhe piadas apropriadas
+            if (isBR) {
+                lines.push(pick(ROAST_DB.base_brasileiro, rng));
+            } else {
+                lines.push(pick(ROAST_DB.base_americano, rng));
+            }
+            
+            // Sempre adiciona algumas universais
+            lines.push(pick(ROAST_DB.base_universal, rng));
 
             // Escolhe piadas base apropriadas ao gênero
             if (g === "Terror" || g === "Thriller" || g === "Suspense") {
