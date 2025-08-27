@@ -410,44 +410,203 @@
         const BASE_URL = 'https://api.themoviedb.org/3';
         const IMG_BASE = 'https://image.tmdb.org/t/p/w500';
         
-        // Banco de críticas ácidas
-        const criticasAcidas = {
-            'barbie': {
-                sinopse: 'Mattel descobriu que dá pra fazer 2 horas de comercial e cobrar ingresso. É rosa, tem plástico, e filosofa mais que universitário de humanas depois de ler Beauvoir pela primeira vez. Margot Robbie e Ryan Gosling merecem Oscar por fingir que o roteiro faz sentido.',
-                analise: 'O filme não sabe se é crítica social, comédia, musical ou propaganda. Tenta ser tudo e consegue ser... bem, é colorido. Tem uma cena de 20 minutos sobre existencialismo com boneca. Greta Gerwig, você está bem?',
-                spoiler: 'Barbie escolhe virar humana pra poder ir ao ginecologista. Sim, essa é a grande revelação filosófica. O patriarcado é derrotado com uma apresentação de PowerPoint. Ken vira terapeuta. Eu preciso de terapia depois disso.'
-            },
-            'fast': {
-                sinopse: 'A física morreu na primeira sequência e agora é só um fantasma assistindo carros no espaço. Dom fala "família" mais vezes que respiramos em um dia. Vin Diesel sussurra 90% das falas porque gritar gasta energia que ele precisa pra segurar o volante dramaticamente.',
-                analise: 'Começou roubando DVD player, agora luta contra cyborgs espaciais. É o único filme onde "salvar o mundo com drift" é uma frase que faz sentido no contexto. A NASA deveria estudar esses carros.',
-                spoiler: 'Plot twist: o vilão é SEMPRE alguém da família que ninguém mencionou antes. Resolvem tudo com corrida. No espaço. Com nitro quântico. A Terra é salva por um Dodge Charger 1970.'
-            },
-            'transformers': {
-                sinopse: 'Michael Bay descobriu que explosões + robôs + Megan Fox = dinheiro infinito. O roteiro foi escrito por uma IA treinada em comerciais de brinquedo dos anos 80. Tem mais product placement que filme.',
-                analise: 'São 3 horas de metal batendo em metal enquanto Shia LaBeouf grita "OPTIMUUUUS". A câmera gira tanto que você sai do cinema com labirintite. Cada filme destrói uma cidade diferente mas ninguém nunca menciona isso no próximo.',
-                spoiler: 'Optimus morre. Volta. Morre de novo. Volta com upgrade. Sam salva o mundo com o poder do amor adolescente. Megatron promete voltar. Sempre volta. É o Silvio Santos dos robôs do mal.'
-            },
-            'batman': {
-                sinopse: 'Bilionário com problemas parentais decide que fantasia de morcego é terapia válida. Gotham é destruída (de novo), o Coringa ri (de novo), Batman rosna (de novo). É o mesmo filme há 40 anos mas agora mais escuro e com mais chuva.',
-                analise: 'Cada reboot o Batman fica mais emo. Daqui a pouco vai lutar contra o crime enquanto ouve My Chemical Romance. A voz dele está tão grossa que precisa de legenda. Alfred deveria cobrar adicional de periculosidade.',
-                spoiler: 'Os pais morrem no beco (chocante!). Batman não mata mas deixa o vilão cair de prédio "sem querer". Gotham continua horrível. Teaser pro próximo filme com outro vilão rindo na sombra.'
-            },
-            'marvel': {
-                sinopse: 'Fórmula Marvel ataca novamente: herói relutante + piadas a cada 30 segundos + CGI de 200 milhões + cena pós-crédito vendendo próximo filme. Stan Lee aparece por 2 segundos e é a melhor parte.',
-                analise: 'O filme existe só pra conectar com outros 47 filmes que você precisa ver pra entender. Tem mais referências que história. O vilão é sempre o herói mas em roxo/cinza/dourado. Destroem Nova York (ou lugar fake que parece Nova York).',
-                spoiler: 'Herói perde no meio, treina/chora/descobre poder interno, volta e vence com ajuda dos amigos. Infinity Stone/multiverso/variante aparece. Nick Fury recruta alguém. Tem 4 cenas pós-créditos preparando Phase 67.'
-            },
-            'netflix': {
-                sinopse: 'Algoritmo da Netflix gerou mais um filme genérico. Tem tudo que tá trending: inclusão forçada, plot twist previsível, e aquele ator que tá em TODOS os filmes da Netflix. Parece que foi feito por committee de marketing.',
-                analise: 'É o filme mais "6/10" já criado. Não é ruim o suficiente pra desligar, não é bom o suficiente pra lembrar. Você termina e o algoritmo já sugere outros 10 idênticos. É o fast food do cinema: satisfaz na hora mas você se arrepende depois.',
-                spoiler: 'O mocinho bonzinho era o vilão (uau!). A mocinha forte e independente salva todo mundo sozinha. Termina com setup pra série de 8 temporadas que vai ser cancelada na segunda. Classic Netflix.'
-            },
-            'default': {
-                sinopse: 'Este filme existe e pessoas foram pagas para fazê-lo. É o equivalente cinematográfico de um email que poderia ser um WhatsApp. Desperdiça seu tempo com a eficiência de reunião que poderia ser um email.',
-                analise: 'Assisti esse filme para vocês não precisarem. É o herói que vocês merecem, mas não o que precisam agora. Ou nunca. Na verdade, ninguém precisa ver isso. A humanidade sobreviveu milhões de anos sem esse filme.',
-                spoiler: 'Spoiler: o filme acaba. Eventualmente. Depois de parecer uma eternidade. Os créditos rolam. Você questiona suas escolhas de vida. Tem cena pós-crédito mas é só o diretor pedindo desculpas. Brincadeira, ele pede pra você ver a sequência.'
-            }
+        // ---------- RNG determinístico por filme ----------
+        function cyrb128(str){
+        let h1=1779033703,h2=3144134277,h3=1013904242,h4=2773480762;
+        for(let i=0;i<str.length;i++){
+            let ch=str.charCodeAt(i);
+            h1=h2^Math.imul(h1^ch,597399067); h2=h3^Math.imul(h2^ch,2869860233);
+            h3=h4^Math.imul(h3^ch,951274213); h4=h1^Math.imul(h4^ch,2716044179);
+        }
+        h1=Math.imul(h3^(h1>>>18),597399067); h2=Math.imul(h4^(h2>>>22),2869860233);
+        h3=Math.imul(h1^(h3>>>17),951274213); h4=Math.imul(h2^(h4>>>19),2716044179);
+        return [(h1^h2^h3^h4)>>>0];
+        }
+        function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^(t>>>15),t|1);
+        t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+        function pick(arr,rng){return arr[Math.floor(rng()*arr.length)]}
+        function uniqLines(lines){return [...new Set(lines.filter(Boolean))]}
+
+        // ---------- Banco de piadas (expandível) ----------
+        const ROAST_DB = {
+        base: [
+            "Orçamento generoso para explodir {coisa} enquanto o roteiro tira férias.",
+            "A fotografia é tão escura que o brilho da TV virou personagem.",
+            "Se {ator} tivesse lido o roteiro até o fim, talvez tivesse dito 'passo'.",
+            "Uma carta de amor aos clichês: com direito a slow motion e monólogo motivacional."
+        ],
+        era80: [
+            "Cheiro de VHS e gel de cabelo nos créditos.",
+            "Trilha de sintetizador que faz qualquer perseguição parecer comercial de tênis."
+        ],
+        era90: [
+            "Quando o blockbuster achava que barulho bastava.",
+            "CGI recém-nascido tentando pagar boletos."
+        ],
+        era2000: [
+            "Câmera tremida o suficiente para exigir cinto no sofá.",
+            "Edição com cortes por minuto maior que batimentos cardíacos."
+        ],
+        Ação: [
+            "A física pediu demissão na primeira cena.",
+            "Explosões suficientes para três filmes do Michael Bay."
+        ],
+        Comédia: [
+            "Piadas explicadas duas vezes para garantir que ninguém ria por engano.",
+            "Humor com risada enlatada invisível."
+        ],
+        Terror: [
+            "Jumpscare por minuto: {numero}/min; história por minuto: em aberto.",
+            "Casa obviamente assombrada que no Zillow custa 12 dólares, e a família fica."
+        ],
+        Drama: [
+            "Silêncios dramáticos tão longos que você revê suas escolhas de vida.",
+            "Close no olhar úmido resolve qualquer arco."
+        ],
+        "Ficção Científica": [
+            "Tecnoblabla suficiente para abrir uma startup.",
+            "As leis da robótica foram substituídas pelas do roteiro."
+        ],
+        Suspense: [
+            "Twist que você sacou no trailer, mas finge surpresa por educação.",
+            "Todo mundo suspeito, inclusive o microfone de lapela."
+        ],
+        Romance: [
+            "Química do casal medida em temperatura ambiente.",
+            "Cidade turística usada como personagem porque o casal não deu liga."
+        ],
+        Animação: [
+            "Piada para adulto escondida entre lições de moral.",
+            "Personagens fofos projetados em laboratório para vender pelúcia."
+        ],
+        franquias: {
+            "Missão Impossível": [
+            "{ator} corre resolve 80% do roteiro; os outros 20% ele resolve pendurado em algo.",
+            "Roteiro baseado em 'e se ele realmente fizesse isso de verdade?'."
+            ],
+            "Velozes e Furiosos": [
+            "A palavra 'família' vence a gravidade pela 12ª vez.",
+            "Tune o carro, tune o roteiro, tune a paciência do espectador."
+            ],
+            "Transformers": [
+            "Metal batendo em metal: trilha oficial do caos.",
+            "Robôs brigam, cidade some, ninguém comenta no próximo filme."
+            ],
+            "Batman": [
+            "Quanto mais chuva, mais sério o filme promete ser.",
+            "Voz grossa nível legenda obrigatória."
+            ],
+            "Marvel": [
+            "Piada a cada 30 segundos para você esquecer o vilão cinza.",
+            "Cena pós-crédito vendendo outro filme mais do que o atual."
+            ]
+        },
+        coisas: ["carros","prédios","helicópteros","coerência","CGI duvidoso","plot twist"]
         };
+
+        // Normalizador de nomes de gêneros (TMDB -> ROAST_DB)
+        function norm(s){
+        return (s||"")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g,"") // remove acentos
+            .toLowerCase();
+        }
+
+        const GENRE_MAP = {
+        "acao": "Ação",
+        "comedia": "Comédia",
+        "terror": "Terror",
+        "drama": "Drama",
+        "ficcao cientifica": "Ficção Científica",
+        "suspense": "Suspense",
+        "romance": "Romance",
+        "animacao": "Animação"
+        };
+
+        function mapGenre(name){
+        return GENRE_MAP[norm(name)] || "base";
+        }
+
+
+        // Detecta franquia por título
+        function detectFranchise(title){
+        const t = (title||"").toLowerCase();
+        if (/miss[aã]o imposs[ií]vel/.test(t)) return "Missão Impossível";
+        if (/velozes|furiosos|fast.*furious/.test(t)) return "Velozes e Furiosos";
+        if (/transformers/.test(t)) return "Transformers";
+        if (/batman/.test(t)) return "Batman";
+        if (/vingadores|marvel|homem de ferro|thor|capit[aã]o am[eé]rica|pantera negra/.test(t)) return "Marvel";
+        return null;
+        }
+
+        // Era por ano
+        function eraTag(year){
+        const y = parseInt(year,10);
+        if (!y) return null;
+        if (y<1990) return "era80";
+        if (y<2000) return "era90";
+        if (y<2010) return "era2000";
+        return null;
+        }
+
+        // Heurística de trash score (determinística + leve jitter)
+        function computeTrashScore(voteAvg, rng){
+        let base = 3;
+        if (typeof voteAvg === "number") {
+            base = Math.round((10 - voteAvg)/2); // 10→0, 0→5
+            base = Math.max(1, Math.min(5, base));
+        }
+        if (rng() < 0.2 && base < 5) base++;   // pequeno tempero
+        if (rng() > 0.85 && base > 1) base--;
+        return base;
+        }
+
+        // Template → substituições
+        function templ(str, ctx){
+        return str
+            .replaceAll("{ator}", ctx.ator || "o protagonista")
+            .replaceAll("{coisa}", pick(ROAST_DB.coisas, ctx.rng))
+            .replaceAll("{numero}", String(1 + Math.floor(ctx.rng()*4)));
+        }
+
+        // Motor principal
+        function gerarCriticaSatira({ title, year, genres=[], cast=[], voteAvg }){
+        const seed = cyrb128(`${title}|${year}`)[0];
+        const rng = mulberry32(seed);
+        const ctx = { rng, ator: cast[0]?.name };
+
+        const g = genres[0] ? mapGenre(genres[0]) : "base";
+        const franq = detectFranchise(title);
+        const era = eraTag(year);
+
+        const pool = [
+            pick(ROAST_DB.base, rng),
+            pick(ROAST_DB[g] || ROAST_DB.base, rng),
+            era ? pick(ROAST_DB[era], rng) : "",
+            franq ? pick(ROAST_DB.franquias[franq], rng) : ""
+        ].filter(Boolean);
+
+        // evita repetidas
+        const lines = uniqLines(pool.map(s => templ(s, ctx)));
+
+        const sinopse = `${title} (${year || "????"}). ${templ(pick(ROAST_DB.base, rng), ctx)}`;
+        const analise = lines
+            .concat([
+            templ(pick(ROAST_DB.base, rng), ctx),
+            templ(pick(ROAST_DB[g] || ROAST_DB.base, rng), ctx)
+            ])
+            .slice(0,6)
+            .join(" ");
+
+        const spoiler = templ(
+            "No fim, {ator} descobre que o verdadeiro vilão era o contrato da sequência.",
+            ctx
+        );
+
+        const trash_score = computeTrashScore(voteAvg, rng);
+
+        return { sinopse, analise, spoiler, trash_score };
+        }
         
         // Função para inicializar o app
         function initializeApp() {
@@ -469,101 +628,107 @@
         
         // Função para buscar filme (simulada por enquanto)
         async function searchMovie() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            if (!searchTerm) {
-                alert('Digite o nome de um filme para destruir! 😈');
-                return;
-            }
-            
-            // Simula busca
-            const results = document.getElementById('movieResults');
-            results.innerHTML = '<div style="text-align: center; color: white; padding: 20px;">🔍 Procurando filme para destruir...</div>';
-            
-            setTimeout(() => {
-                // Determina qual crítica usar
-                let critica = criticasAcidas.default;
-                
-                if (searchTerm.includes('barbie')) critica = criticasAcidas.barbie;
-                else if (searchTerm.includes('velozes') || searchTerm.includes('furiosos')) critica = criticasAcidas.fast;
-                else if (searchTerm.includes('transformers')) critica = criticasAcidas.transformers;
-                else if (searchTerm.includes('batman')) critica = criticasAcidas.batman;
-                else if (searchTerm.includes('marvel') || searchTerm.includes('vingadores')) critica = criticasAcidas.marvel;
-                else if (searchTerm.includes('netflix')) critica = criticasAcidas.netflix;
-                
-                // Gera rating aleatório
-                const rating = Math.floor(Math.random() * 5) + 1;
-                
-                // Cria card do filme
-                results.innerHTML = `
-                    <div class="movie-card">
-                        <div class="movie-header">
-                            <img src="https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster" 
-                                 alt="Poster" class="movie-poster">
-                            <div class="movie-info">
-                                <h2 class="movie-title">${searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1)}</h2>
-                                <div class="movie-meta">
-                                    📅 Ano: 2024<br>
-                                    ⭐ Nota TMDB: ${(10 - rating * 1.5).toFixed(1)}/10<br>
-                                    🎬 Gênero: Desperdício de Tempo
-                                </div>
-                                <div class="trash-rating">
-                                    ${'🗑️'.repeat(rating)}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="movie-content">
-                            <div class="section">
-                                <div class="section-header">
-                                    <div class="section-title">
-                                        📝 SINOPSE ORIGINAL
-                                    </div>
-                                </div>
-                                <div class="section-content">
-                                    Uma jornada cinematográfica que explora os limites do tédio humano e testa sua paciência de formas nunca antes imaginadas.
-                                </div>
-                            </div>
-                            
-                            <div class="section acida">
-                                <div class="section-header">
-                                    <div class="section-title">
-                                        😈 CRÍTICA ÁCIDA
-                                    </div>
-                                    <span class="badge">GRÁTIS</span>
-                                </div>
-                                <div class="section-content">
-                                    <strong>${critica.sinopse}</strong>
-                                </div>
-                            </div>
-                            
-                            <div class="section locked">
-                                <div class="section-header">
-                                    <div class="section-title">
-                                        🔒 ANÁLISE PROFUNDA
-                                    </div>
-                                    <span class="badge">EM BREVE</span>
-                                </div>
-                                <div class="section-content">
-                                    ${critica.analise}
-                                </div>
-                            </div>
-                            
-                            <div class="section locked">
-                                <div class="section-header">
-                                    <div class="section-title">
-                                        🔒 SPOILER SARCÁSTICO
-                                    </div>
-                                    <span class="badge">EM BREVE</span>
-                                </div>
-                                <div class="section-content">
-                                    ${critica.spoiler}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }, 1500);
-        }
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) {
+    alert('Digite o nome de um filme para destruir! 😈');
+    return;
+  }
+
+  const results = document.getElementById('movieResults');
+  results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">🔍 Procurando filme para destruir...</div>';
+
+  try {
+    // 1. Busca filme no TMDB
+    const r = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=pt-BR&query=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    const movie = data.results?.[0];
+    if (!movie) {
+      results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">🤷‍♂️ Não achei esse filme no TMDB…</div>';
+      return;
+    }
+
+    // 2. Busca detalhes (gêneros) + créditos (atores)
+    const [detailsResp, creditsResp] = await Promise.all([
+      fetch(`${BASE_URL}/movie/${movie.id}?api_key=${API_KEY}&language=pt-BR`),
+      fetch(`${BASE_URL}/movie/${movie.id}/credits?api_key=${API_KEY}&language=pt-BR`)
+    ]);
+    const details = detailsResp.ok ? await detailsResp.json() : {};
+    const credits = creditsResp.ok ? await creditsResp.json() : {};
+
+    const genres = details.genres?.map(g => g.name) || [];
+    const cast = (credits.cast || []).slice(0, 3);
+    const poster = movie.poster_path
+      ? `${IMG_BASE}${movie.poster_path}`
+      : 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster';
+
+    // 3. Gera sátira determinística (sem IA, sem custo)
+    const critica = gerarCriticaSatira({
+      title: movie.title,
+      year: (movie.release_date || '').slice(0, 4),
+      genres,
+      cast,
+      voteAvg: typeof movie.vote_average === 'number' ? movie.vote_average : undefined
+    });
+
+    const trash = '🗑️'.repeat(critica.trash_score);
+    const tmdbScore = (movie.vote_average ?? 6.2).toFixed(1);
+
+    // 4. Monta card na tela
+    results.innerHTML = `
+      <div class="movie-card">
+        <div class="movie-header">
+          <img src="${poster}" alt="Poster" class="movie-poster">
+          <div class="movie-info">
+            <h2 class="movie-title">${movie.title}</h2>
+            <div class="movie-meta">
+              📅 Ano: ${(movie.release_date || '????').slice(0, 4)}<br>
+              ⭐ Nota TMDB: ${tmdbScore}/10<br>
+              🎬 Gênero: ${genres.join(', ') || '—'}
+            </div>
+            <div class="trash-rating" title="Trash score (1-5)">${trash}</div>
+          </div>
+        </div>
+
+        <div class="movie-content">
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title">📝 SINOPSE ORIGINAL (TMDB)</div>
+            </div>
+            <div class="section-content">
+              ${movie.overview || 'Sem sinopse no TMDB.'}
+            </div>
+          </div>
+
+          <div class="section acida">
+            <div class="section-header">
+              <div class="section-title">😈 CRÍTICA ÁCIDA (Motor Satírico)</div>
+              <span class="badge">GRÁTIS</span>
+            </div>
+            <div class="section-content"><strong>${critica.sinopse}</strong></div>
+          </div>
+
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title">🧪 ANÁLISE PROFUNDA</div>
+            </div>
+            <div class="section-content">${critica.analise}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title">🤫 SPOILER SARCÁSTICO</div>
+            </div>
+            <div class="section-content">${critica.spoiler}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    console.error(e);
+    results.innerHTML = '<div style="text-align:center;color:white;padding:20px;">💥 Deu ruim. Tente novamente.</div>';
+  }
+}
+
         
         // Busca rápida
         function quickSearch(movie) {
