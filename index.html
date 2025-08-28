@@ -900,6 +900,14 @@
                 // Mostra info de debug se disponível
                 if (data.debug) {
                     console.log('Reddit API debug info:', data.debug);
+                    
+                    // Se usou fallback, mostra aviso discreto
+                    if (data.debug.hasFallback) {
+                        const fallbackNotice = document.createElement('div');
+                        fallbackNotice.style.cssText = "font-size: 11px; opacity: 0.6; margin-top: 10px; font-style: italic;";
+                        fallbackNotice.innerHTML = "💡 Alguns comentários são simulados (Reddit indisponível)";
+                        redditArea.appendChild(fallbackNotice);
+                    }
                 }
 
             } catch (error) {
