@@ -417,7 +417,7 @@
                 <div class="api-status">
                     <div class="status-item" id="tmdbStatus">🎬 TMDB: Desconectado</div>
                     <div class="status-item" id="tvmazeStatus">📺 TVMaze: Desconectado</div>
-                    <div class="status-item" id="redditStatus">💬 Reddit: Desconectado</div>
+                    <div class="status-item" id="reviewsStatus">🎯 Reviews: Desconectado</div>
                 </div>
             </div>
             
@@ -485,8 +485,8 @@
                     <span><strong>Séries:</strong> <a href="https://www.tvmaze.com" style="color: white;">TVMaze</a></span>
                 </div>
                 <div class="attribution-item">
-                    <span style="font-size: 24px;">💬</span>
-                    <span><strong>Comentários:</strong> Reddit API</span>
+                    <span style="font-size: 24px;">🎯</span>
+                    <span><strong>Reviews:</strong> TMDB + OMDb + Análises</span>
                 </div>
             </div>
             
@@ -494,8 +494,8 @@
                 ⚠️ <strong>AVISOS LEGAIS:</strong><br>
                 • <strong>Filmes:</strong> Este site usa TMDB e as APIs do TMDB mas não é endossado, certificado ou aprovado pelo TMDB.<br>
                 • <strong>Séries:</strong> Dados de TV fornecidos por <a href="https://www.tvmaze.com" style="color: white;">TVMaze</a> sob licença <a href="https://creativecommons.org/licenses/by-sa/4.0/" style="color: white;">CC BY-SA 4.0</a>.<br>
+                • <strong>Reviews:</strong> Avaliações obtidas de TMDB, OMDb (IMDb/Rotten Tomatoes) e análises contextuais.<br>
                 • Todas as críticas são opiniões satíricas para fins de entretenimento.<br>
-                • Comentários coletados de threads públicas do Reddit (© seus respectivos autores).<br>
                 © 2024 CineTrash - Projeto educacional não comercial
             </p>
         </footer>
@@ -710,7 +710,7 @@
         async function initializeApp() {
             const tmdbStatus = document.getElementById('tmdbStatus');
             const tvmazeStatus = document.getElementById('tvmazeStatus');
-            const redditStatus = document.getElementById('redditStatus');
+            const reviewsStatus = document.getElementById('reviewsStatus');
             const searchInput = document.getElementById('searchInput');
             const searchBtn = document.getElementById('searchBtn');
             
@@ -742,19 +742,19 @@
                 tvmazeStatus.textContent = '📺 TVMaze: ❌ Erro';
             }
             
-            // Testa Reddit API (nossa própria API)
-            redditStatus.textContent = '💬 Reddit: Testando...';
+            // Testa API de Reviews
+            reviewsStatus.textContent = '🎯 Reviews: Testando...';
             try {
-                const response = await fetch('/api/reddit?q=test');
+                const response = await fetch('/api/reddit?title=test&type=movie');
                 if (response.ok) {
-                    redditStatus.textContent = '💬 Reddit: ✅ Conectado';
-                    redditStatus.classList.add('connected');
+                    reviewsStatus.textContent = '🎯 Reviews: ✅ Conectado';
+                    reviewsStatus.classList.add('connected');
                 } else {
-                    throw new Error('Reddit API connection failed');
+                    throw new Error('Reviews API connection failed');
                 }
             } catch (error) {
-                redditStatus.textContent = '💬 Reddit: ❌ Erro';
-                console.warn('Reddit API test failed:', error);
+                reviewsStatus.textContent = '🎯 Reviews: ❌ Erro';
+                console.warn('Reviews API test failed:', error);
             }
             
             // Ativa interface
@@ -817,22 +817,25 @@
             return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
         }
 
-        // === FUNÇÃO CORRIGIDA PARA BUSCAR REDDIT ===
-        async function loadRedditReactions(title, type, year = '') {
-            const redditArea = document.getElementById("redditArea");
-            if (!redditArea) {
-                console.warn("Reddit area not found");
+        // === FUNÇÃO PARA BUSCAR REVIEWS HÍBRIDOS ===
+        async function loadReviews(title, type, year = '', tmdbId = '', rating = 7.0) {
+            const reviewsArea = document.getElementById("reviewsArea");
+            if (!reviewsArea) {
+                console.warn("Reviews area not found");
                 return;
             }
 
             // Loading state
-            redditArea.innerHTML = `<div class="loading">🔄 Buscando zoeira do Reddit...</div>`;
+            reviewsArea.innerHTML = `<div class="loading">🔄 Buscando avaliações de múltiplas fontes...</div>`;
 
             try {
                 const params = new URLSearchParams({
-                    q: title || "",
+                    title: title || "",
                     year: year || "",
                     type: type || "",
+                    tmdb_id: tmdbId || "",
+                    rating: rating.toString(),
+                    genres: "" // Será preenchido se disponível
                 });
 
                 const response = await fetch(`/api/reddit?${params.toString()}`);
@@ -842,48 +845,63 @@
                 }
 
                 const data = await response.json();
-                const quotes = data.quotes || []; // compatível com estrutura corrigida da API
+                const reviews = data.reviews || [];
 
-                console.log('Reddit data received:', data); // debug
+                console.log('Reviews data received:', data);
 
-                if (!quotes.length) {
-                    redditArea.innerHTML = `
+                if (!reviews.length) {
+                    reviewsArea.innerHTML = `
                         <div style="opacity: 0.7;">
-                            🤷‍♂️ Nada muito relevante por lá — hoje você é o crítico!
+                            🤷‍♂️ Nenhuma avaliação encontrada para este título.
                         </div>
                     `;
                     return;
                 }
 
-                // Traduz e monta lista de quotes
-                const quotesHtml = await Promise.all(
-                    quotes.slice(0, 5).map(async (quote, index) => {
+                // Monta lista de reviews com fontes variadas
+                const reviewsHtml = await Promise.all(
+                    reviews.slice(0, 6).map(async (review, index) => {
                         try {
-                            const translatedText = await translateText(quote.text, "en", "pt-BR");
+                            // Traduz apenas reviews em inglês (fonte TMDB principalmente)
+                            const shouldTranslate = review.source === 'TMDB' && review.text.length > 50;
+                            const translatedText = shouldTranslate 
+                                ? await translateText(review.text, "en", "pt-BR")
+                                : review.text;
+                            
+                            // Determina ícone por fonte
+                            let sourceIcon = '💬';
+                            if (review.source === 'TMDB') sourceIcon = '🎬';
+                            else if (review.source === 'OMDb') sourceIcon = '⭐';
+                            else if (review.source === 'Sintético') sourceIcon = '🤖';
                             
                             return `
-                                <li style="margin-bottom: 15px; line-height: 1.6; border-left: 3px solid #764ba2; padding-left: 15px;">
-                                    <div style="margin-bottom: 8px;">
+                                <li style="margin-bottom: 18px; line-height: 1.6; border-left: 3px solid #764ba2; padding-left: 15px; background: rgba(118, 75, 162, 0.05); border-radius: 8px; padding: 15px;">
+                                    <div style="margin-bottom: 10px;">
                                         "${htmlEscape(translatedText)}"
                                     </div>
-                                    <div style="font-size: 0.85em; opacity: 0.7;">
-                                        👤 ${htmlEscape(quote.author)} • 
-                                        ⬆️ ${quote.score} • 
-                                        <a href="${quote.link}" target="_blank" rel="noopener" style="color: #764ba2;">ver thread</a>
+                                    <div style="font-size: 0.85em; opacity: 0.75; display: flex; justify-content: space-between; align-items: center;">
+                                        <span>
+                                            ${sourceIcon} <strong>${htmlEscape(review.author)}</strong> • 
+                                            📊 ${review.score}/100 •
+                                            <em>${review.source}</em>
+                                            ${review.date ? ` • ${review.date}` : ''}
+                                        </span>
+                                        ${review.link ? `<a href="${review.link}" target="_blank" rel="noopener" style="color: #764ba2; font-size: 12px;">ver original</a>` : ''}
                                     </div>
                                 </li>
                             `;
                         } catch (error) {
-                            console.warn(`Translation failed for quote ${index}:`, error);
+                            console.warn(`Translation failed for review ${index}:`, error);
                             return `
-                                <li style="margin-bottom: 15px; line-height: 1.6; border-left: 3px solid #764ba2; padding-left: 15px;">
-                                    <div style="margin-bottom: 8px;">
-                                        "${htmlEscape(quote.text)}"
+                                <li style="margin-bottom: 18px; line-height: 1.6; border-left: 3px solid #764ba2; padding-left: 15px; background: rgba(118, 75, 162, 0.05); border-radius: 8px; padding: 15px;">
+                                    <div style="margin-bottom: 10px;">
+                                        "${htmlEscape(review.text)}"
                                     </div>
-                                    <div style="font-size: 0.85em; opacity: 0.7;">
-                                        👤 ${htmlEscape(quote.author)} • 
-                                        ⬆️ ${quote.score} • 
-                                        <a href="${quote.link}" target="_blank" rel="noopener" style="color: #764ba2;">ver thread</a>
+                                    <div style="font-size: 0.85em; opacity: 0.75;">
+                                        💬 <strong>${htmlEscape(review.author)}</strong> • 
+                                        📊 ${review.score}/100 • 
+                                        <em>${review.source}</em>
+                                        ${review.link ? ` • <a href="${review.link}" target="_blank" rel="noopener" style="color: #764ba2;">ver original</a>` : ''}
                                     </div>
                                 </li>
                             `;
@@ -891,30 +909,30 @@
                     })
                 );
 
-                redditArea.innerHTML = `
+                reviewsArea.innerHTML = `
                     <ul style="list-style: none; padding: 0; margin: 0;">
-                        ${quotesHtml.join("")}
+                        ${reviewsHtml.join("")}
                     </ul>
                 `;
 
-                // Mostra info de debug se disponível
+                // Mostra fontes utilizadas
+                if (data.sources && data.sources.length > 0) {
+                    const sourcesInfo = document.createElement('div');
+                    sourcesInfo.style.cssText = "font-size: 11px; opacity: 0.6; margin-top: 15px; font-style: italic; border-top: 1px solid #eee; padding-top: 10px;";
+                    sourcesInfo.innerHTML = `📈 Fontes: ${data.sources.join(', ')}`;
+                    reviewsArea.appendChild(sourcesInfo);
+                }
+
+                // Debug info
                 if (data.debug) {
-                    console.log('Reddit API debug info:', data.debug);
-                    
-                    // Se usou fallback, mostra aviso discreto
-                    if (data.debug.hasFallback) {
-                        const fallbackNotice = document.createElement('div');
-                        fallbackNotice.style.cssText = "font-size: 11px; opacity: 0.6; margin-top: 10px; font-style: italic;";
-                        fallbackNotice.innerHTML = "💡 Alguns comentários são simulados (Reddit indisponível)";
-                        redditArea.appendChild(fallbackNotice);
-                    }
+                    console.log('Reviews API debug info:', data.debug);
                 }
 
             } catch (error) {
-                console.error("Reddit fetch failed:", error);
-                redditArea.innerHTML = `
+                console.error("Reviews fetch failed:", error);
+                reviewsArea.innerHTML = `
                     <div class="error">
-                        💥 Não conseguimos buscar os comentários do Reddit agora. Tente novamente.
+                        💥 Erro ao buscar avaliações. Tente novamente em alguns minutos.
                     </div>
                 `;
             }
@@ -952,6 +970,7 @@
                     poster: movie.poster_path 
                         ? `${TMDB_IMG_BASE}${movie.poster_path}` 
                         : 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster',
+                    tmdb_id: movie.id,
                     original_data: movie
                 };
             } catch (error) {
@@ -992,6 +1011,7 @@
                     poster: det.image?.original || det.image?.medium || 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster',
                     network: det.network?.name || det.webChannel?.name || 'Desconhecido',
                     status: det.status || '—',
+                    tmdb_id: '',
                     original_data: det
                 };
             } catch (e) {
@@ -1105,11 +1125,11 @@
 
                         <div class="section">
                             <div class="section-header">
-                                <div class="section-title">🗣️ ZOEIRA DA GALERA (Reddit)</div>
+                                <div class="section-title">🎯 AVALIAÇÕES REAIS</div>
                             </div>
-                            <div class="section-content" id="redditArea">—</div>
+                            <div class="section-content" id="reviewsArea">—</div>
                             <div style="font-size:12px;opacity:.65;margin-top:6px">
-                                Trechos públicos do Reddit, traduzidos automaticamente • clique para abrir a discussão original.
+                                Reviews de TMDB, ratings do OMDb/IMDb/Rotten Tomatoes e análises contextuais • clique para ver fontes originais.
                             </div>
                         </div>
 
@@ -1135,8 +1155,8 @@
                 });
             }
 
-            // CORREÇÃO: chama a função corrigida para carregar reações do Reddit
-            loadRedditReactions(content.title, content.type, content.year);
+            // Chama a função para carregar reviews
+            loadReviews(content.title, content.type, content.year, content.tmdb_id, content.rating);
         }
         
         function quickSearch(query, type = null) {
