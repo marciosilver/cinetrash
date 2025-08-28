@@ -346,6 +346,16 @@
             border-left: 4px solid #ffc107;
         }
         
+        .loading {
+            opacity: 0.7;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-style: italic;
+        }
+        
         footer {
             background: rgba(0,0,0,0.2);
             color: white;
@@ -407,6 +417,7 @@
                 <div class="api-status">
                     <div class="status-item" id="tmdbStatus">🎬 TMDB: Desconectado</div>
                     <div class="status-item" id="tvmazeStatus">📺 TVMaze: Desconectado</div>
+                    <div class="status-item" id="redditStatus">💬 Reddit: Desconectado</div>
                 </div>
             </div>
             
@@ -472,6 +483,10 @@
                 <div class="attribution-item">
                     <span style="font-size: 24px;">📺</span>
                     <span><strong>Séries:</strong> <a href="https://www.tvmaze.com" style="color: white;">TVMaze</a></span>
+                </div>
+                <div class="attribution-item">
+                    <span style="font-size: 24px;">💬</span>
+                    <span><strong>Comentários:</strong> Reddit API</span>
                 </div>
             </div>
             
@@ -695,6 +710,7 @@
         async function initializeApp() {
             const tmdbStatus = document.getElementById('tmdbStatus');
             const tvmazeStatus = document.getElementById('tvmazeStatus');
+            const redditStatus = document.getElementById('redditStatus');
             const searchInput = document.getElementById('searchInput');
             const searchBtn = document.getElementById('searchBtn');
             
@@ -712,7 +728,7 @@
                 tmdbStatus.textContent = '🎬 TMDB: ❌ Erro';
             }
             
-            // Testa TVMaze (sempre funciona, não precisa de key)
+            // Testa TVMaze
             tvmazeStatus.textContent = '📺 TVMaze: Conectando...';
             try {
                 const response = await fetch(`${TVMAZE_BASE_URL}/shows/1`);
@@ -726,6 +742,21 @@
                 tvmazeStatus.textContent = '📺 TVMaze: ❌ Erro';
             }
             
+            // Testa Reddit API (nossa própria API)
+            redditStatus.textContent = '💬 Reddit: Testando...';
+            try {
+                const response = await fetch('/api/reddit?q=test');
+                if (response.ok) {
+                    redditStatus.textContent = '💬 Reddit: ✅ Conectado';
+                    redditStatus.classList.add('connected');
+                } else {
+                    throw new Error('Reddit API connection failed');
+                }
+            } catch (error) {
+                redditStatus.textContent = '💬 Reddit: ❌ Erro';
+                console.warn('Reddit API test failed:', error);
+            }
+            
             // Ativa interface
             searchInput.disabled = false;
             searchBtn.disabled = false;
@@ -735,11 +766,11 @@
         const _translateCache = new Map();
 
         function _looksPtBR(s) {
-        return /[ãõáéíóúàêâôç]/i.test(s); // heurística simples
+            return /[ãõáéíóúàêâôç]/i.test(s); // heurística simples
         }
 
         function _stripHtml(s) {
-        return (s || "").replace(/<[^>]*>/g, "");
+            return (s || "").replace(/<[^>]*>/g, "");
         }
 
         async function translateText(text, fromLang = "en", toLang = "pt-BR") {
@@ -765,15 +796,15 @@
             const out = [];
             for (const part of chunks) {
                 try {
-                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(part)}&langpair=${fromLang}|${toLang}`;
-                const resp = await fetch(url);
-                const data = await resp.json();
-                const ok = data?.responseStatus === 200 && data?.responseData?.translatedText;
-                out.push(ok ? data.responseData.translatedText : part);
-                // opcional: pequeno delay para respeitar cota
-                await new Promise(r => setTimeout(r, 120));
+                    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(part)}&langpair=${fromLang}|${toLang}`;
+                    const resp = await fetch(url);
+                    const data = await resp.json();
+                    const ok = data?.responseStatus === 200 && data?.responseData?.translatedText;
+                    out.push(ok ? data.responseData.translatedText : part);
+                    // delay para respeitar cota
+                    await new Promise(r => setTimeout(r, 150));
                 } catch {
-                out.push(part); // fallback do pedaço
+                    out.push(part); // fallback
                 }
             }
 
@@ -782,88 +813,104 @@
             return finalText;
         }
 
-        function htmlEscape(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-
-        // filtro super simples para evitar link/spoiler/trechos ruins
-        function _isDecentQuote(txt){
-            if (!txt) return false;
-            if (txt.length < 30 || txt.length > 300) return false;         // muito curto/longuinho
-            if (/(http|www\.)/i.test(txt)) return false;                   // evita spam/links
-            if (/\bspoiler\b/i.test(txt)) return false;                    // evita spoiler óbvio
-            if (/[*_#>`]/.test(txt)) return false;                         // evita markdown pesado
-            return true;
+        function htmlEscape(s){
+            return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
         }
 
-        // busca tópicos em alguns subreddits e extrai os melhores comentários
-        async function fetchRedditReactions(title, type){
-            try {
-                const url = `/api/reddit?q=${encodeURIComponent(title)}&type=${encodeURIComponent(type)}`;
-                const r = await fetch(url);
-                if (!r.ok) throw new Error("backend reddit not ok");
-                const { quotes = [] } = await r.json();
-
-                // traduz cada quote (sem estourar cota)
-                const out = [];
-                for (const q of quotes) {
-                const textPt = await translateText(q.text, "en", "pt-BR");
-                out.push({ ...q, text: textPt });
-                await new Promise(res => setTimeout(res, 120)); // micro delay
-                }
-                return out;
-            } catch (e) {
-                console.warn("Reddit backend falhou:", e);
-                return [];
+        // === FUNÇÃO CORRIGIDA PARA BUSCAR REDDIT ===
+        async function loadRedditReactions(title, type, year = '') {
+            const redditArea = document.getElementById("redditArea");
+            if (!redditArea) {
+                console.warn("Reddit area not found");
+                return;
             }
-        }
 
-        // injeta quotes traduzidos no card
-        async function loadRedditReactions(content) {
-            const box = document.getElementById("redditBox");
-            if (!box) return;
-
-            // loading
-            box.innerHTML = `<em style="opacity:.7">Carregando zoeira pública do Reddit…</em>`;
-
-            const params = new URLSearchParams({
-                q: content.title || "",
-                year: content.year || "",
-                type: content.type || "",
-                imdb: content.imdb_id || "", // se você preencher isso (opcional)
-            });
+            // Loading state
+            redditArea.innerHTML = `<div class="loading">🔄 Buscando zoeira do Reddit...</div>`;
 
             try {
-                const resp = await fetch(`/api/reddit?${params.toString()}`);
-                const quotes = (await resp.json()) || [];
+                const params = new URLSearchParams({
+                    q: title || "",
+                    year: year || "",
+                    type: type || "",
+                });
+
+                const response = await fetch(`/api/reddit?${params.toString()}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const quotes = data.quotes || []; // compatível com estrutura corrigida da API
+
+                console.log('Reddit data received:', data); // debug
 
                 if (!quotes.length) {
-                box.innerHTML =
-                    'Nada muito relevante por lá — hoje você é o crítico 🥲';
-                return;
+                    redditArea.innerHTML = `
+                        <div style="opacity: 0.7;">
+                            🤷‍♂️ Nada muito relevante por lá — hoje você é o crítico!
+                        </div>
+                    `;
+                    return;
                 }
 
-                // monta a lista + traduz
-                const lis = await Promise.all(
-                quotes.slice(0, 5).map(async (q) => {
-                    const t = await translateText(q.text, "en", "pt-BR");
-                    return `
-                    <li style="margin-bottom:10px; line-height:1.6">
-                        “${t}”
-                        <div style="font-size:.9em;opacity:.7">
-                        — ${q.author} • ↑${q.score} •
-                        <a href="${q.link}" target="_blank" rel="noopener">ver thread</a>
-                        </div>
-                    </li>`;
+                // Traduz e monta lista de quotes
+                const quotesHtml = await Promise.all(
+                    quotes.slice(0, 5).map(async (quote, index) => {
+                        try {
+                            const translatedText = await translateText(quote.text, "en", "pt-BR");
+                            
+                            return `
+                                <li style="margin-bottom: 15px; line-height: 1.6; border-left: 3px solid #764ba2; padding-left: 15px;">
+                                    <div style="margin-bottom: 8px;">
+                                        "${htmlEscape(translatedText)}"
+                                    </div>
+                                    <div style="font-size: 0.85em; opacity: 0.7;">
+                                        👤 ${htmlEscape(quote.author)} • 
+                                        ⬆️ ${quote.score} • 
+                                        <a href="${quote.link}" target="_blank" rel="noopener" style="color: #764ba2;">ver thread</a>
+                                    </div>
+                                </li>
+                            `;
+                        } catch (error) {
+                            console.warn(`Translation failed for quote ${index}:`, error);
+                            return `
+                                <li style="margin-bottom: 15px; line-height: 1.6; border-left: 3px solid #764ba2; padding-left: 15px;">
+                                    <div style="margin-bottom: 8px;">
+                                        "${htmlEscape(quote.text)}"
+                                    </div>
+                                    <div style="font-size: 0.85em; opacity: 0.7;">
+                                        👤 ${htmlEscape(quote.author)} • 
+                                        ⬆️ ${quote.score} • 
+                                        <a href="${quote.link}" target="_blank" rel="noopener" style="color: #764ba2;">ver thread</a>
+                                    </div>
+                                </li>
+                            `;
+                        }
                     })
                 );
 
-                box.innerHTML = `<ul style="padding-left:18px">${lis.join("")}</ul>`;
-            } catch (e) {
-                console.warn("reddit fetch failed:", e);
-                box.innerHTML =
-                'Não rolou pegar os comentários agora. Tenta de novo mais tarde.';
+                redditArea.innerHTML = `
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                        ${quotesHtml.join("")}
+                    </ul>
+                `;
+
+                // Mostra info de debug se disponível
+                if (data.debug) {
+                    console.log('Reddit API debug info:', data.debug);
+                }
+
+            } catch (error) {
+                console.error("Reddit fetch failed:", error);
+                redditArea.innerHTML = `
+                    <div class="error">
+                        💥 Não conseguimos buscar os comentários do Reddit agora. Tente novamente.
+                    </div>
+                `;
             }
         }
-
         
         // === FUNÇÕES DE BUSCA ===
         async function searchTMDB(query) {
@@ -933,7 +980,7 @@
                     genres: det.genres || show.genres || [],
                     cast,
                     rating: (det.rating && typeof det.rating.average === 'number') ? det.rating.average : null,
-                    overview,  // ← Note que agora é só 'overview', não inline
+                    overview,
                     poster: det.image?.original || det.image?.medium || 'https://via.placeholder.com/150x225/764ba2/ffffff?text=Poster',
                     network: det.network?.name || det.webChannel?.name || 'Desconhecido',
                     status: det.status || '—',
@@ -974,7 +1021,7 @@
                     return;
                 }
                 
-                // Mostra primeiro resultado encontrado (pode expandir para mostrar múltiplos)
+                // Mostra primeiro resultado encontrado
                 const content = validResults[0];
                 displayContent(content);
                 
@@ -1008,73 +1055,80 @@
             results.innerHTML = `
                 <div class="content-card">
                     <div class="content-header">
-                    <img src="${content.poster}" alt="Poster" class="content-poster">
-                    <div class="content-info">
-                        <h2 class="content-title">${content.title}</h2>
-                        <div class="source-badge">${content.source}</div>
-                        <div class="content-meta">
-                        ${typeIcon} Tipo: ${typeLabel}<br>
-                        📅 Ano: ${content.year || '????'}<br>
-                        ⭐ Nota: ${ratingDisplay}/10<br>
-                        🎬 Gênero: ${content.genres.join(', ') || '—'}<br>
-                        ${extraInfo}
+                        <img src="${content.poster}" alt="Poster" class="content-poster">
+                        <div class="content-info">
+                            <h2 class="content-title">${content.title}</h2>
+                            <div class="source-badge">${content.source}</div>
+                            <div class="content-meta">
+                                ${typeIcon} Tipo: ${typeLabel}<br>
+                                📅 Ano: ${content.year || '????'}<br>
+                                ⭐ Nota: ${ratingDisplay}/10<br>
+                                🎬 Gênero: ${content.genres.join(', ') || '—'}<br>
+                                ${extraInfo}
+                            </div>
+                            <div class="trash-rating" title="Trash score (1-5)">${trash}</div>
                         </div>
-                        <div class="trash-rating" title="Trash score (1-5)">${trash}</div>
-                    </div>
                     </div>
 
                     <div class="content-body">
-                    <div class="section">
-                        <div class="section-header">
-                        <div class="section-title">📝 SINOPSE ORIGINAL</div>
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-title">📝 SINOPSE ORIGINAL</div>
+                            </div>
+                            <div class="section-content" id="synopsisArea">
+                                ${content.overview}
+                            </div>
                         </div>
-                        <div class="section-content" id="synopsisArea">
-                        ${content.overview}
-                        </div>
-                    </div>
 
-                    <div class="section acida">
-                        <div class="section-header">
-                        <div class="section-title">😈 CRÍTICA ÁCIDA</div>
-                        <span class="badge">MOTOR SATÍRICO</span>
+                        <div class="section acida">
+                            <div class="section-header">
+                                <div class="section-title">😈 CRÍTICA ÁCIDA</div>
+                                <span class="badge">MOTOR SATÍRICO</span>
+                            </div>
+                            <div class="section-content"><strong>${critica.sinopse}</strong></div>
                         </div>
-                        <div class="section-content"><strong>${critica.sinopse}</strong></div>
-                    </div>
 
-                    <div class="section">
-                        <div class="section-header">
-                        <div class="section-title">🧪 ANÁLISE PROFUNDA</div>
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-title">🧪 ANÁLISE PROFUNDA</div>
+                            </div>
+                            <div class="section-content">${critica.analise}</div>
                         </div>
-                        <div class="section-content">${critica.analise}</div>
-                    </div>
 
-                    <div class="section">
-                        <div class="section-header">
-                        <div class="section-title">🗣️ ZOEIRA DA GALERA (Reddit)</div>
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-title">🗣️ ZOEIRA DA GALERA (Reddit)</div>
+                            </div>
+                            <div class="section-content" id="redditArea">—</div>
+                            <div style="font-size:12px;opacity:.65;margin-top:6px">
+                                Trechos públicos do Reddit, traduzidos automaticamente • clique para abrir a discussão original.
+                            </div>
                         </div>
-                        <div class="section-content" id="redditArea">—</div>
-                        <div style="font-size:12px;opacity:.65;margin-top:6px">
-                        Trechos públicos do Reddit, traduzidos automaticamente • clique para abrir a discussão original.
-                        </div>
-                    </div>
 
-                    <div class="section">
-                        <div class="section-header">
-                        <div class="section-title">🤫 SPOILER SARCÁSTICO</div>
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-title">🤫 SPOILER SARCÁSTICO</div>
+                            </div>
+                            <div class="section-content">${critica.spoiler}</div>
                         </div>
-                        <div class="section-content">${critica.spoiler}</div>
-                    </div>
                     </div>
                 </div>
-                `;
+            `;
+            
             // 🔄 Tradução assíncrona da sinopse
             const synopsisEl = document.getElementById("synopsisArea");
-            translateText(content.overview, "en", "pt-BR").then(t => {
-                if (t && t !== content.overview) synopsisEl.textContent = t;
-            });
+            if (content.overview) {
+                translateText(content.overview, "en", "pt-BR").then(translated => {
+                    if (translated && translated !== content.overview) {
+                        synopsisEl.textContent = translated;
+                    }
+                }).catch(error => {
+                    console.warn("Translation failed:", error);
+                });
+            }
 
-            // carrega reações do Reddit
-            loadRedditReactions(content.title, content.type);
+            // CORREÇÃO: chama a função corrigida para carregar reações do Reddit
+            loadRedditReactions(content.title, content.type, content.year);
         }
         
         function quickSearch(query, type = null) {
