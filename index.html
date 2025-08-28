@@ -817,31 +817,53 @@
         }
 
         // injeta quotes traduzidos no card
-        async function loadRedditReactions(title, type){
-            const area = document.getElementById('redditArea');
-                if (!area) return;
-                area.innerHTML = '🔎 Vasculhando a zoeira do Reddit…';
+        async function loadRedditReactions(content) {
+            const box = document.getElementById("redditBox");
+            if (!box) return;
 
-                try {
-                    const quotes = await fetchRedditReactions(title, type);
-                    if (!quotes.length) {
-                    area.textContent = 'Nada muito relevante por lá — hoje você é o crítico 😅';
-                    return;
-                    }
+            // loading
+            box.innerHTML = `<em style="opacity:.7">Carregando zoeira pública do Reddit…</em>`;
 
-                    area.innerHTML = quotes.map(q => `
-                    <blockquote style="margin:0 0 14px 0;padding-left:14px;border-left:4px solid #eee">
-                        <p style="margin:0 0 4px 0">“${htmlEscape(q.text)}”</p>
-                        <div style="font-size:12px;opacity:.75">
-                        — <a href="${q.link}" target="_blank" rel="noopener">u/${htmlEscape(q.author)}</a> • ▲${q.score}
-                        </div>
-                    </blockquote>
-                    `).join('');
-                } catch (e) {
-                    console.error('Reddit falhou:', e);
-                    area.textContent = 'Não deu para carregar os comentários da internet agora.';
+            const params = new URLSearchParams({
+                q: content.title || "",
+                year: content.year || "",
+                type: content.type || "",
+                imdb: content.imdb_id || "", // se você preencher isso (opcional)
+            });
+
+            try {
+                const resp = await fetch(`/api/reddit?${params.toString()}`);
+                const quotes = (await resp.json()) || [];
+
+                if (!quotes.length) {
+                box.innerHTML =
+                    'Nada muito relevante por lá — hoje você é o crítico 🥲';
+                return;
                 }
+
+                // monta a lista + traduz
+                const lis = await Promise.all(
+                quotes.slice(0, 5).map(async (q) => {
+                    const t = await translateText(q.text, "en", "pt-BR");
+                    return `
+                    <li style="margin-bottom:10px; line-height:1.6">
+                        “${t}”
+                        <div style="font-size:.9em;opacity:.7">
+                        — ${q.author} • ↑${q.score} •
+                        <a href="${q.link}" target="_blank" rel="noopener">ver thread</a>
+                        </div>
+                    </li>`;
+                    })
+                );
+
+                box.innerHTML = `<ul style="padding-left:18px">${lis.join("")}</ul>`;
+            } catch (e) {
+                console.warn("reddit fetch failed:", e);
+                box.innerHTML =
+                'Não rolou pegar os comentários agora. Tenta de novo mais tarde.';
+            }
         }
+
         
         // === FUNÇÕES DE BUSCA ===
         async function searchTMDB(query) {
